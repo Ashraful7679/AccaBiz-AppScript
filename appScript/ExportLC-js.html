@@ -1,0 +1,476 @@
+<script>
+  let allExportLCs = [];
+  let currentLCLineItems = [];
+  let customers = [];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("Export LC page ready");
+    fetchExportLCs();
+    loadCustomers();
+  });
+
+  setTimeout(function() {
+    if (typeof fetchExportLCs === 'function') {
+      fetchExportLCs();
+      loadCustomers();
+    }
+  }, 500);
+
+  function fetchExportLCs() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        allExportLCs = data;
+        renderExportLCTable(data);
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error fetching LCs:", err);
+        showNotification("Error loading LCs: " + err, 'error');
+      })
+      .getExportLCData();
+  }
+
+  function loadCustomers() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        customers = data || [];
+        populateCustomerDropdown();
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading customers:", err);
+        showNotification("Error loading customers: " + err, 'error');
+      })
+      .getCustomerData();
+  }
+
+  function populateCustomerDropdown() {
+    const select = document.getElementById('lcCustomerId');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Select Customer --</option>';
+    customers.forEach(customer => {
+      const option = document.createElement('option');
+      option.value = customer.id || '';
+      option.textContent = customer.name || 'Unknown';
+      select.appendChild(option);
+    });
+  }
+
+  function renderExportLCTable(data) {
+    const tbody = document.getElementById('lc-list-body');
+    const rowCount = document.getElementById('lcRowCount');
+
+    if (!data || data.length === 0) {
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#95a5a6;">No export LCs found.</td></tr>';
+      }
+      if (rowCount) rowCount.innerText = '0';
+      return;
+    }
+
+    if (rowCount) rowCount.innerText = data.length;
+    if (tbody) tbody.innerHTML = '';
+
+    data.forEach(lc => {
+      const status = lc.status || 'Pending';
+      const statusClass = status.toLowerCase() === 'approved' ? 'status-approved' : 
+                         status.toLowerCase() === 'rejected' ? 'status-rejected' : 'status-pending';
+
+      const customerName = customers.find(c => c.id === lc.customerId)?.name || (lc.customerId || 'N/A');
+
+      const row = `
+        <tr>
+          <td>${lc.lcNumber || 'N/A'}</td>
+          <td>${customerName}</td>
+          <td>${lc.bankName || 'N/A'}</td>
+          <td>${lc.currency || 'BDT'} ${lc.amount || '0'}</td>
+          <td>${lc.issueDate || 'N/A'}</td>
+          <td>
+            <select onchange="updateLCStatus('${lc.id}', this.value)" style="padding: 4px; border-radius: 4px; border: none; cursor: pointer;">
+              <option value="Pending" ${status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="Approved" ${status === 'Approved' ? 'selected' : ''}>Approved</option>
+              <option value="Rejected" ${status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+            </select>
+          </td>
+          <td style="text-align: center;">
+            <div class="action-buttons">
+              <button class="btn-action btn-view" onclick="viewExportLC('${lc.id}')" title="View Details">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn-action btn-edit" onclick="editExportLC('${lc.id}')" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn-action" style="color: #27ae60;" onclick="printExportLC('${lc.id}')" title="Print">
+                <i class="fas fa-print"></i>
+              </button>
+              <button class="btn-action btn-delete" onclick="deleteExportLC('${lc.id}')" title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      if (tbody) tbody.insertAdjacentHTML('beforeend', row);
+    });
+  }
+
+  function openAddExportLCModal() {
+    currentLCLineItems = [];
+    document.getElementById('lcModalTitle').innerText = "Create New Export LC";
+    document.getElementById('lcForm').reset();
+    document.getElementById('lcId').value = "";
+    document.getElementById('lcLineItemsContainer').innerHTML = '';
+    document.getElementById('lcSummary').innerHTML = '<div class="summary-box"><div class="summary-row"><span>Total LC Amount:</span><span>0.00</span></div></div>';
+    document.getElementById('lcModal').style.display = "flex";
+  }
+
+  function viewExportLC(lcId) {
+    const lc = allExportLCs.find(l => l.id === lcId);
+    if (!lc) {
+      showNotification('Export LC not found', 'error');
+      return;
+    }
+    console.log("Viewing LC:", lc);
+    google.script.run
+      .withSuccessHandler(function(lines) {
+        console.log("LC lines received:", lines);
+        currentLCLineItems = lines || [];
+        loadLCForEditing(lc, true);
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading LC details:", err);
+        showNotification('Error loading LC details: ' + err, 'error');
+      })
+      .getExportLCLinesByLC(lcId);
+  }
+
+  function editExportLC(lcId) {
+    const lc = allExportLCs.find(l => l.id === lcId);
+    if (!lc) {
+      showNotification('Export LC not found', 'error');
+      return;
+    }
+    console.log("Editing LC:", lc);
+    google.script.run
+      .withSuccessHandler(function(lines) {
+        console.log("LC lines received:", lines);
+        currentLCLineItems = lines || [];
+        loadLCForEditing(lc, false);
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading LC details:", err);
+        showNotification('Error loading LC details: ' + err, 'error');
+      })
+      .getExportLCLinesByLC(lcId);
+  }
+
+  function loadLCForEditing(lc, viewOnly) {
+    document.getElementById('lcModalTitle').innerText = viewOnly ? "View Export LC" : "Edit Export LC";
+    document.getElementById('lcId').value = lc.id;
+    document.getElementById('lcCustomerId').value = lc.customerId || '';
+    document.getElementById('lcBankName').value = lc.bankName || '';
+    document.getElementById('lcAmount').value = lc.amount || '';
+    document.getElementById('lcCurrency').value = lc.currency || 'BDT';
+    document.getElementById('lcIssueDate').value = lc.issueDate || '';
+    document.getElementById('lcExpiryDate').value = lc.expiryDate || '';
+    document.getElementById('lcStatus').value = lc.status || 'Pending';
+    document.getElementById('lcDescription').value = lc.description || '';
+    document.getElementById('lcLoanType').value = lc.loanType || '';
+    document.getElementById('lcLoanValue').value = lc.loanValue || '';
+    document.getElementById('lcLastReceiptDate').value = lc.lastReceiptDate || '';
+    document.getElementById('lcBankBranch').value = lc.bankBranch || '';
+    
+    // Populate line items (shipment details)
+    const container = document.getElementById('lcLineItemsContainer');
+    container.innerHTML = '';
+    currentLCLineItems.forEach(line => {
+      addLCLineItemDisplay(line);
+    });
+
+    updateLCSummary();
+
+    if (viewOnly) {
+      document.querySelectorAll('#lcForm input, #lcForm select, #lcForm textarea').forEach(el => el.disabled = true);
+      document.getElementById('lcAddLineItemBtn').style.display = 'none';
+      document.getElementById('lcSaveBtn').style.display = 'none';
+      document.getElementById('lcCancelBtn').textContent = 'Close';
+    } else {
+      document.querySelectorAll('#lcForm input, #lcForm select, #lcForm textarea').forEach(el => el.disabled = false);
+      document.getElementById('lcAddLineItemBtn').style.display = 'inline-block';
+      document.getElementById('lcSaveBtn').style.display = 'inline-block';
+      document.getElementById('lcCancelBtn').textContent = 'Cancel';
+    }
+
+    document.getElementById('lcModal').style.display = "flex";
+  }
+
+  function addLCLineItem() {
+    const shipmentId = document.getElementById('lcShipmentId').value;
+    const shipmentDate = document.getElementById('lcShipmentDate').value;
+    const shipmentAmount = document.getElementById('lcShipmentAmount').value;
+
+    if (!shipmentId) {
+      showNotification('Please enter shipment ID', 'warning');
+      return;
+    }
+    if (!shipmentAmount || shipmentAmount <= 0) {
+      showNotification('Please enter shipment amount', 'warning');
+      return;
+    }
+
+    const lineItem = {
+      id: 'line-' + Date.now(),
+      shipmentId: shipmentId,
+      shipmentDate: shipmentDate,
+      shipmentAmount: parseFloat(shipmentAmount),
+      isNew: true
+    };
+
+    currentLCLineItems.push(lineItem);
+    addLCLineItemDisplay(lineItem);
+    
+    // Reset form
+    document.getElementById('lcShipmentId').value = '';
+    document.getElementById('lcShipmentDate').value = '';
+    document.getElementById('lcShipmentAmount').value = '';
+    
+    updateLCSummary();
+    showNotification('Shipment detail added', 'success');
+  }
+
+  function addLCLineItemDisplay(lineItem) {
+    const container = document.getElementById('lcLineItemsContainer');
+    const html = `
+      <div class="line-item" id="line-${lineItem.id}">
+        <div class="line-item-info">
+          <span><strong>Shipment ID: ${lineItem.shipmentId}</strong></span>
+          <span>Date: ${lineItem.shipmentDate || 'N/A'}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="line-item-amount">${document.getElementById('lcCurrency').value || 'BDT'} ${lineItem.shipmentAmount.toFixed(2)}</span>
+          <button type="button" class="btn-action btn-delete" onclick="removeLCLineItem('${lineItem.id}')" title="Delete">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+  }
+
+  function removeLCLineItem(lineId) {
+    currentLCLineItems = currentLCLineItems.filter(item => item.id !== lineId);
+    const element = document.getElementById('line-' + lineId);
+    if (element) element.remove();
+    updateLCSummary();
+  }
+
+  function updateLCSummary() {
+    let totalShipments = 0;
+
+    currentLCLineItems.forEach(item => {
+      totalShipments += item.shipmentAmount;
+    });
+
+    const summary = document.getElementById('lcSummary');
+    if (summary) {
+      summary.innerHTML = `
+        <div class="summary-box">
+          <div class="summary-row">
+            <span>LC Amount:</span>
+            <span>${document.getElementById('lcCurrency').value || 'BDT'} ${(document.getElementById('lcAmount').value || 0)}</span>
+          </div>
+          <div class="summary-row">
+            <span>Total Shipments:</span>
+            <span>${document.getElementById('lcCurrency').value || 'BDT'} ${totalShipments.toFixed(2)}</span>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  function closeLcModal() {
+    document.getElementById('lcModal').style.display = "none";
+  }
+
+  document.addEventListener('submit', function(e) {
+    if (e.target.id === 'lcForm') {
+      e.preventDefault();
+
+      const saveBtn = document.getElementById('lcSaveBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerText = "Saving...";
+
+      const formData = {
+        id: document.getElementById('lcId').value,
+        customerId: document.getElementById('lcCustomerId').value,
+        bankName: document.getElementById('lcBankName').value,
+        amount: parseFloat(document.getElementById('lcAmount').value) || 0,
+        currency: document.getElementById('lcCurrency').value,
+        issueDate: document.getElementById('lcIssueDate').value,
+        expiryDate: document.getElementById('lcExpiryDate').value,
+        status: document.getElementById('lcStatus').value,
+        description: document.getElementById('lcDescription').value,
+        loanType: document.getElementById('lcLoanType').value,
+        loanValue: parseFloat(document.getElementById('lcLoanValue').value) || 0,
+        lastReceiptDate: document.getElementById('lcLastReceiptDate').value,
+        bankBranch: document.getElementById('lcBankBranch').value,
+        lineItems: currentLCLineItems
+      };
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          showNotification('Export LC saved successfully!', 'success');
+          closeLcModal();
+          fetchExportLCs();
+          saveBtn.disabled = false;
+          saveBtn.innerText = "Save Export LC";
+        })
+        .withFailureHandler(function(err) {
+          showNotification('Error: ' + err, 'error');
+          saveBtn.disabled = false;
+          saveBtn.innerText = "Save Export LC";
+        })
+        .saveExportLC(formData);
+    }
+  });
+
+  function deleteExportLC(lcId) {
+    if (!confirm('Are you sure you want to delete this export LC?')) return;
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        showNotification('Export LC deleted successfully!', 'success');
+        fetchExportLCs();
+      })
+      .withFailureHandler(function(err) {
+        showNotification('Error deleting LC: ' + err, 'error');
+      })
+      .deleteExportLC(lcId);
+  }
+
+  function updateLCStatus(lcId, newStatus) {
+    const lc = allExportLCs.find(l => l.id === lcId);
+    if (!lc) {
+      showNotification('Export LC not found', 'error');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        showNotification('Export LC status updated to: ' + newStatus, 'success');
+        lc.status = newStatus;
+        fetchExportLCs();
+      })
+      .withFailureHandler(function(err) {
+        showNotification('Error updating status: ' + err, 'error');
+        fetchExportLCs();
+      })
+      .updateExportLCStatus(lcId, newStatus);
+  }
+
+  function printExportLC(lcId) {
+    const lc = allExportLCs.find(l => l.id === lcId);
+    if (!lc) {
+      showNotification('Export LC not found', 'error');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(lines) {
+        const customer = customers.find(c => c.id === lc.customerId) || {};
+        let html = `
+          <html>
+            <head>
+              <title>Export LC - ${lc.lcNumber}</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .header h2 { margin: 0; }
+                .lc-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+                .info-box { border: 1px solid #ddd; padding: 10px; }
+                .info-box strong { display: block; color: #2c3e50; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                th { background: #f8f9fa; font-weight: bold; }
+                .total { text-align: right; font-weight: bold; margin-top: 20px; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h2>Export Letter of Credit</h2>
+                <p>${lc.lcNumber}</p>
+              </div>
+              <div class="lc-info">
+                <div class="info-box">
+                  <strong>Customer:</strong> ${customer.name || 'N/A'}
+                </div>
+                <div class="info-box">
+                  <strong>Bank Name:</strong> ${lc.bankName}
+                </div>
+                <div class="info-box">
+                  <strong>Issue Date:</strong> ${lc.issueDate}
+                </div>
+                <div class="info-box">
+                  <strong>Expiry Date:</strong> ${lc.expiryDate}
+                </div>
+                <div class="info-box">
+                  <strong>Loan Type:</strong> ${lc.loanType || 'N/A'}
+                </div>
+                <div class="info-box">
+                  <strong>Status:</strong> ${lc.status}
+                </div>
+              </div>
+              <div style="margin: 20px 0;">
+                <strong>Description:</strong>
+                <p>${lc.description || 'N/A'}</p>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Shipment ID</th>
+                    <th>Shipment Date</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        (lines || []).forEach(line => {
+          html += `
+                  <tr>
+                    <td>${line.shipmentId}</td>
+                    <td>${line.shipmentDate}</td>
+                    <td>${lc.currency} ${line.shipmentAmount}</td>
+                  </tr>
+          `;
+        });
+        
+        html += `
+                </tbody>
+              </table>
+              <div class="total">Total LC Amount: ${lc.currency} ${lc.amount}</div>
+              <script>window.print();<\/script>
+            </body>
+          </html>
+        `;
+        
+        const printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write(html);
+        printWindow.document.close();
+      })
+      .withFailureHandler(function(err) {
+        showNotification('Error generating print: ' + err, 'error');
+      })
+      .getExportLCLinesByLC(lcId);
+  }
+
+  function filterExportLCTable() {
+    const searchTerm = document.getElementById('lcSearch').value.toLowerCase();
+    const table = document.getElementById('lcTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    Array.from(rows).forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+  }
+</script>

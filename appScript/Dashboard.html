@@ -4,13 +4,41 @@
       <h2><i class="fas fa-chart-line"></i> Dashboard</h2>
       <p class="subtitle">Summary of all database sheets and record counts.</p>
     </div>
+    <div class="quick-menu">
+      <button class="btn-quick" onclick="loadPage('JournalEntry')"><i class="fas fa-plus"></i> New Journal</button>
+      <button class="btn-quick" onclick="loadPage('SalesInvoice')"><i class="fas fa-plus"></i> Sales Invoice</button>
+      <button class="btn-quick" onclick="loadPage('PurchaseInvoice')"><i class="fas fa-plus"></i> Purchase Invoice</button>
+    </div>
   </div>
 
-  <div id="page-data-container" class="page-content">
-    <div class="placeholder-box">Loading dashboard summary...</div>
+  <div class="dashboard-content">
+    <div class="left-panel">
+      <div id="data-table-container" class="page-content">
+        <div class="placeholder-box">Loading dashboard data...</div>
+      </div>
+    </div>
+    <div class="right-panel">
+      <div class="panel-item notifications">
+        <h4><i class="fas fa-bell"></i> Recent Activities</h4>
+        <div id="activity-list">
+          <p>Loading activities...</p>
+        </div>
+      </div>
+      <div class="panel-item graphs">
+        <h4><i class="fas fa-chart-bar"></i> Financial Overview</h4>
+        <canvas id="financialChart" width="300" height="200"></canvas>
+      </div>
+      <div class="panel-item financial-summary">
+        <h4><i class="fas fa-dollar-sign"></i> Financial Summary</h4>
+        <div id="financial-summary-content">
+          <p>Loading summary...</p>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  loadSheetForPage('Dashboard');
+  loadDashboardData();
 </script>

@@ -1,0 +1,187 @@
+<div class="lc-wrapper">
+  <div class="page-header">
+    <div class="title-section">
+      <h2><i class="fas fa-file-contract"></i> Export Letter of Credit</h2>
+      <p class="subtitle">Manage your export LCs here.</p>
+    </div>
+    <button class="btn-add" onclick="openAddExportLCModal()">
+      <i class="fas fa-plus-circle"></i> New Export LC
+    </button>
+  </div>
+
+  <div class="action-bar">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="lcSearch" placeholder="Search by LC number or bank..." onkeyup="filterExportLCTable()">
+    </div>
+    <div class="table-info">
+      <span id="lcRowCount">0</span> export LCs found
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table" id="lcTable">
+      <thead>
+        <tr>
+          <th>LC Number</th>
+          <th>Customer</th>
+          <th>Bank</th>
+          <th>Amount</th>
+          <th>Issue Date</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="lc-list-body">
+        <tr>
+          <td colspan="7" style="text-align:center; padding:30px; color:#95a5a6;">
+            <i class="fas fa-spinner fa-spin"></i> Loading data...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Export LC Modal -->
+<div id="lcModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="lcModalTitle">Create New Export LC</h3>
+      <span class="close" onclick="closeLcModal()">&times;</span>
+    </div>
+
+    <form id="lcForm">
+      <input type="hidden" id="lcId">
+
+      <div class="form-group">
+        <label>Customer *</label>
+        <select id="lcCustomerId" required>
+          <option value="">-- Select Customer --</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Bank Name *</label>
+          <input type="text" id="lcBankName" required placeholder="Enter bank name">
+        </div>
+        <div class="form-group">
+          <label>Bank Branch</label>
+          <input type="text" id="lcBankBranch" placeholder="Enter bank branch">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>LC Amount *</label>
+          <input type="number" id="lcAmount" step="0.01" required placeholder="Enter LC amount">
+        </div>
+        <div class="form-group">
+          <label>Currency *</label>
+          <select id="lcCurrency" required>
+            <option value="BDT">BDT</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Issue Date *</label>
+          <input type="date" id="lcIssueDate" required>
+        </div>
+        <div class="form-group">
+          <label>Expiry Date *</label>
+          <input type="date" id="lcExpiryDate" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Loan Type</label>
+          <input type="text" id="lcLoanType" placeholder="Enter loan type">
+        </div>
+        <div class="form-group">
+          <label>Loan Value</label>
+          <input type="number" id="lcLoanValue" step="0.01" placeholder="Enter loan value">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Last Receipt Date</label>
+          <input type="date" id="lcLastReceiptDate">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="lcStatus">
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="lcDescription" placeholder="Enter description" rows="3"></textarea>
+      </div>
+
+      <!-- Shipment Details Section -->
+      <div class="form-section">
+        <h4>Shipment Details</h4>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Shipment ID *</label>
+            <input type="text" id="lcShipmentId" required placeholder="Enter shipment ID">
+          </div>
+          <div class="form-group">
+            <label>Shipment Date</label>
+            <input type="date" id="lcShipmentDate">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Shipment Amount *</label>
+            <input type="number" id="lcShipmentAmount" step="0.01" required placeholder="Enter amount">
+          </div>
+        </div>
+
+        <button type="button" class="btn-primary" id="lcAddLineItemBtn" onclick="addLCLineItem()" style="width: 100%; margin-top: 10px;">
+          <i class="fas fa-plus"></i> Add Shipment
+        </button>
+
+        <!-- Line Items Container -->
+        <div class="line-items" id="lcLineItemsContainer">
+          <!-- Shipment details will be added here -->
+        </div>
+
+        <!-- LC Summary -->
+        <div id="lcSummary">
+          <div class="summary-box">
+            <div class="summary-row">
+              <span>LC Amount:</span>
+              <span>0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeLcModal()" id="lcCancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary" id="lcSaveBtn">Save Export LC</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Initialize the page
+  setTimeout(function() {
+    loadSheetForPage('ExportLC');
+  }, 100);
+</script>

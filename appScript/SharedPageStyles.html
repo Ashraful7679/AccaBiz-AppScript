@@ -22,4 +22,13 @@
   .panel-item { background: #fff; border: 1px solid #e8ecf0; border-radius: 12px; padding: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.04); }
   .panel-item h4 { margin: 0 0 10px; font-size: 1rem; color: #2c3e50; }
   .panel-item span { color: #7f8c8d; font-size: 0.95rem; }
+  .dashboard-content { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  .left-panel, .right-panel { display: flex; flex-direction: column; gap: 20px; }
+  .quick-menu { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-quick { background: #3498db; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-size: 0.9rem; }
+  .btn-quick:hover { background: #2980b9; }
+  .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+  .pagination button { padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; }
+  .pagination button.active { background: #3498db; color: white; }
+  .pagination button:disabled { background: #f0f0f0; cursor: not-allowed; }
 </style>

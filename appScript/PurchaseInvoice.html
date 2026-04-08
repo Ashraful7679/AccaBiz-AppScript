@@ -1,9 +1,173 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-  </head>
-  <body>
-    
-  </body>
-</html>
+<div class="pi-wrapper">
+  <div class="page-header">
+    <div class="title-section">
+      <h2><i class="fas fa-file-invoice"></i> Purchase Invoice</h2>
+      <p class="subtitle">Manage your purchase invoices here.</p>
+    </div>
+    <button class="btn-add" onclick="openAddPurchaseInvoiceModal()">
+      <i class="fas fa-plus-circle"></i> New Purchase Invoice
+    </button>
+  </div>
+
+  <div class="action-bar">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="piSearch" placeholder="Search by invoice number or supplier..." onkeyup="filterPurchaseInvoiceTable()">
+    </div>
+    <div class="table-info">
+      <span id="piRowCount">0</span> purchase invoices found
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table" id="piTable">
+      <thead>
+        <tr>
+          <th>Invoice Number</th>
+          <th>Supplier</th>
+          <th>Invoice Date</th>
+          <th>Expected Receipt</th>
+          <th>Total Amount</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="pi-list-body">
+        <tr>
+          <td colspan="7" style="text-align:center; padding:30px; color:#95a5a6;">
+            <i class="fas fa-spinner fa-spin"></i> Loading data...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Purchase Invoice Modal -->
+<div id="piModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="piModalTitle">Create New Purchase Invoice</h3>
+      <span class="close" onclick="closePiModal()">&times;</span>
+    </div>
+
+    <form id="piForm">
+      <input type="hidden" id="piId">
+
+      <div class="form-group">
+        <label>Supplier *</label>
+        <select id="piSupplierId" required>
+          <option value="">-- Select Supplier --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Purchase Order</label>
+        <select id="piPoId">
+          <option value="">-- Select PO --</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Invoice Date *</label>
+          <input type="date" id="piInvoiceDate" required>
+        </div>
+        <div class="form-group">
+          <label>Expected Receipt Date *</label>
+          <input type="date" id="piExpectedFinalReceivingDate" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Currency *</label>
+          <select id="piCurrency" required>
+            <option value="BDT">BDT</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="piStatus">
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Line Items Section -->
+      <div class="form-section">
+        <h4>Purchase Invoice Line Items</h4>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product *</label>
+            <select id="piProductSelect" onchange="updatePIProductPrice()">
+              <option value="">-- Select Product --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Unit Price</label>
+            <input type="number" id="piUnitPrice" step="0.01" placeholder="Auto-populated from product">
+          </div>
+          <div class="form-group">
+            <label>Quantity *</label>
+            <input type="number" id="piProductQty" step="0.01" required placeholder="Enter quantity">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tax %</label>
+            <input type="number" id="piTaxPercent" step="0.01" value="0" placeholder="Enter tax percentage">
+          </div>
+          <div class="form-group">
+            <label>Expected Receiving Date</label>
+            <input type="date" id="piExpectedReceiptDate">
+          </div>
+        </div>
+
+        <button type="button" class="btn-primary" id="piAddLineItemBtn" onclick="addPILineItem()" style="width: 100%; margin-top: 10px;">
+          <i class="fas fa-plus"></i> Add Line Item
+        </button>
+
+        <!-- Line Items Container -->
+        <div class="line-items" id="piLineItemsContainer">
+          <!-- Line items will be added here -->
+        </div>
+
+        <!-- PI Summary -->
+        <div id="piSummary">
+          <div class="summary-box">
+            <div class="summary-row">
+              <span>Subtotal:</span>
+              <span>0.00</span>
+            </div>
+            <div class="summary-row total">
+              <span>Grand Total:</span>
+              <span>0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closePiModal()" id="piCancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary" id="piSaveBtn">Save Purchase Invoice</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Initialize the page
+  setTimeout(function() {
+    loadSheetForPage('PurchaseInvoice');
+  }, 100);
+</script>

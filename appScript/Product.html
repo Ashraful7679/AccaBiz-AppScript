@@ -1,40 +1,41 @@
 <div class="product-wrapper">
   <div class="page-header">
     <div class="title-section">
-      <h2><i class="fas fa-boxes"></i> প্রোডাক্ট ইনভেন্টরি</h2>
-      <p class="subtitle">আপনার স্টকের বিস্তারিত তথ্য এখানে দেখুন</p>
+      <h2><i class="fas fa-boxes"></i> Product Inventory</h2>
+      <p class="subtitle">View your stock details here.</p>
     </div>
     <button class="btn-add" onclick="openAddProductModal()">
-      <i class="fas fa-plus-circle"></i> এড প্রোডাক্ট
+      <i class="fas fa-plus-circle"></i> Add Product
     </button>
   </div>
 
   <div class="action-bar">
     <div class="search-box">
       <i class="fas fa-search"></i>
-      <input type="text" id="productSearch" placeholder="নাম বা SKU দিয়ে সার্চ করুন..." onkeyup="filterProductTable()">
+      <input type="text" id="productSearch" placeholder="Search by name or SKU..." onkeyup="filterProductTable()">
     </div>
     <div class="table-info">
-      <span id="rowCount">০</span> টি প্রোডাক্ট পাওয়া গেছে
+      <span id="rowCount">0</span> products found
     </div>
   </div>
 
   <div class="table-responsive">
     <table class="data-table" id="productTable">
-    <thead>
-      <tr>
-        <th>প্রোডাক্টের নাম ও ডেসক্রিপশন</th>
-        <th>SKU</th>
-        <th>ইউনিট প্রাইস</th>
-        <th>স্টক</th>
-        <th>টাইপ</th> <th>স্ট্যাটাস</th>
-        <th>অ্যাকশন</th>
-      </tr>
-    </thead>
+      <thead>
+        <tr>
+          <th>Product Name & Description</th>
+          <th>SKU</th>
+          <th>Unit Price</th>
+          <th>Stock</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
       <tbody id="product-list-body">
         <tr>
           <td colspan="7" style="text-align:center; padding:30px; color:#95a5a6;">
-            <i class="fas fa-spinner fa-spin"></i> ডাটা লোড হচ্ছে...
+            <i class="fas fa-spinner fa-spin"></i> Loading data...
           </td>
         </tr>
       </tbody>
@@ -45,27 +46,28 @@
 <div id="productModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <h3 id="modalTitle">নতুন প্রোডাক্ট যোগ করুন</h3>
+      <h3 id="modalTitle">Add New Product</h3>
       <span class="close" onclick="closeModal()">&times;</span>
     </div>
     <form id="productForm">
-      <input type="hidden" id="productId"> <div class="form-group">
-        <label>প্রোডাক্টের নাম *</label>
+      <input type="hidden" id="productId">
+      <div class="form-group">
+        <label>Product Name *</label>
         <input type="text" id="name" required>
       </div>
-      
+
       <div class="form-group">
-        <label>ডেসক্রিপশন</label>
+        <label>Description</label>
         <textarea id="description" rows="3"></textarea>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label>ইউনিট প্রাইস</label>
+          <label>Unit Price</label>
           <input type="number" id="unitPrice" step="0.01">
         </div>
         <div class="form-group">
-          <label>কারেন্সি</label>
+          <label>Currency</label>
           <select id="currency">
             <option value="BDT">BDT</option>
             <option value="USD">USD</option>
@@ -75,30 +77,30 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label>স্টক পরিমাণ</label>
+          <label>Stock Amount</label>
           <input type="number" id="stockAmount">
         </div>
         <div class="form-group">
-          <label>স্ট্যাটাস</label>
+          <label>Status</label>
           <select id="isActive">
             <option value="TRUE">Active</option>
             <option value="FALSE">Inactive</option>
           </select>
         </div>
         <div class="form-group">
-          <label>প্রোডাক্ট টাইপ *</label>
+          <label>Product Type *</label>
           <select id="productType" required>
-            <option value="">সিলেক্ট করুন</option>
-            <option value="purchase">পার্চেজ (Purchase)</option>
-            <option value="sales">সেলস (Sales)</option>
-            <option value="both">উভয় (Both)</option>
+            <option value="">Select type</option>
+            <option value="purchase">Purchase</option>
+            <option value="sales">Sales</option>
+            <option value="both">Both</option>
           </select>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn-secondary" onclick="closeModal()">বাতিল</button>
-        <button type="submit" class="btn-primary" id="saveBtn">সেভ করুন</button>
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-primary" id="saveBtn">Save Product</button>
       </div>
     </form>
   </div>

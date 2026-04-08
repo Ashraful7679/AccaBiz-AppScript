@@ -1,9 +1,173 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-  </head>
-  <body>
-    
-  </body>
-</html>
+<div class="si-wrapper">
+  <div class="page-header">
+    <div class="title-section">
+      <h2><i class="fas fa-file-invoice-dollar"></i> Sales Invoice</h2>
+      <p class="subtitle">Manage your sales invoices here.</p>
+    </div>
+    <button class="btn-add" onclick="openAddSalesInvoiceModal()">
+      <i class="fas fa-plus-circle"></i> New Sales Invoice
+    </button>
+  </div>
+
+  <div class="action-bar">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="siSearch" placeholder="Search by invoice number or customer..." onkeyup="filterSalesInvoiceTable()">
+    </div>
+    <div class="table-info">
+      <span id="siRowCount">0</span> sales invoices found
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table" id="siTable">
+      <thead>
+        <tr>
+          <th>Invoice Number</th>
+          <th>Customer</th>
+          <th>Invoice Date</th>
+          <th>Expected Delivery</th>
+          <th>Total Amount</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="si-list-body">
+        <tr>
+          <td colspan="7" style="text-align:center; padding:30px; color:#95a5a6;">
+            <i class="fas fa-spinner fa-spin"></i> Loading data...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Sales Invoice Modal -->
+<div id="siModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="siModalTitle">Create New Sales Invoice</h3>
+      <span class="close" onclick="closeSiModal()">&times;</span>
+    </div>
+
+    <form id="siForm">
+      <input type="hidden" id="siId">
+
+      <div class="form-group">
+        <label>Customer *</label>
+        <select id="siCustomerId" required>
+          <option value="">-- Select Customer --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Purchase Order</label>
+        <select id="siPoId">
+          <option value="">-- Select PO --</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Invoice Date *</label>
+          <input type="date" id="siInvoiceDate" required>
+        </div>
+        <div class="form-group">
+          <label>Expected Delivery Date *</label>
+          <input type="date" id="siExpectedFinalDeliveryDate" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Currency *</label>
+          <select id="siCurrency" required>
+            <option value="BDT">BDT</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="siStatus">
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Line Items Section -->
+      <div class="form-section">
+        <h4>Sales Invoice Line Items</h4>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product *</label>
+            <select id="siProductSelect" onchange="updateSIProductPrice()">
+              <option value="">-- Select Product --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Unit Price</label>
+            <input type="number" id="siUnitPrice" step="0.01" placeholder="Auto-populated from product">
+          </div>
+          <div class="form-group">
+            <label>Quantity *</label>
+            <input type="number" id="siProductQty" step="0.01" required placeholder="Enter quantity">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tax %</label>
+            <input type="number" id="siTaxPercent" step="0.01" value="0" placeholder="Enter tax percentage">
+          </div>
+          <div class="form-group">
+            <label>Expected Delivery Date</label>
+            <input type="date" id="siExpectedDeliveryDate">
+          </div>
+        </div>
+
+        <button type="button" class="btn-primary" id="siAddLineItemBtn" onclick="addSILineItem()" style="width: 100%; margin-top: 10px;">
+          <i class="fas fa-plus"></i> Add Line Item
+        </button>
+
+        <!-- Line Items Container -->
+        <div class="line-items" id="siLineItemsContainer">
+          <!-- Line items will be added here -->
+        </div>
+
+        <!-- SI Summary -->
+        <div id="siSummary">
+          <div class="summary-box">
+            <div class="summary-row">
+              <span>Subtotal:</span>
+              <span>0.00</span>
+            </div>
+            <div class="summary-row total">
+              <span>Grand Total:</span>
+              <span>0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeSiModal()" id="siCancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary" id="siSaveBtn">Save Sales Invoice</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Initialize the page
+  setTimeout(function() {
+    loadSheetForPage('SalesInvoice');
+  }, 100);
+</script>

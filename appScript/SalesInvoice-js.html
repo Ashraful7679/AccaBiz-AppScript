@@ -1,0 +1,565 @@
+<script>
+  let allSalesInvoices = [];
+  let currentSILineItems = [];
+  let customers = [];
+  let products = [];
+  let purchaseOrders = [];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("Sales Invoice page ready");
+    fetchSalesInvoices();
+    loadCustomers();
+    loadProducts();
+    loadPurchaseOrders();
+  });
+
+  setTimeout(function() {
+    if (typeof fetchSalesInvoices === 'function') {
+      fetchSalesInvoices();
+      loadCustomers();
+      loadProducts();
+      loadPurchaseOrders();
+    }
+  }, 500);
+
+  function fetchSalesInvoices() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        allSalesInvoices = data;
+        renderSalesInvoiceTable(data);
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error fetching SIs:", err);
+        showNotification("Error loading sales invoices: " + err, 'error');
+      })
+      .getSalesInvoiceData();
+  }
+
+  function loadCustomers() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        customers = data || [];
+        populateCustomerDropdown();
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading customers:", err);
+        showNotification("Error loading customers: " + err, 'error');
+      })
+      .getCustomerData();
+  }
+
+  function loadProducts() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        products = data || [];
+        populateProductDropdown();
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading products:", err);
+      })
+      .getProductData();
+  }
+
+  function loadPurchaseOrders() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        purchaseOrders = data || [];
+        populatePODropdown();
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading POs:", err);
+      })
+      .getPurchaseOrderData();
+  }
+
+  function populateCustomerDropdown() {
+    const select = document.getElementById('siCustomerId');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Select Customer --</option>';
+    customers.forEach(customer => {
+      const option = document.createElement('option');
+      option.value = customer.id || '';
+      option.textContent = customer.name || 'Unknown';
+      select.appendChild(option);
+    });
+  }
+
+  function populatePODropdown() {
+    const select = document.getElementById('siPoId');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Select PO --</option>';
+    purchaseOrders.forEach(po => {
+      const option = document.createElement('option');
+      option.value = po.id || '';
+      option.textContent = (po.poNumber || 'N/A') + ' - ' + (customers.find(c => c.id === po.supplierId)?.name || 'Unknown');
+      select.appendChild(option);
+    });
+  }
+
+  function populateProductDropdown() {
+    const select = document.getElementById('siProductSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Select Product --</option>';
+    products.forEach(product => {
+      const option = document.createElement('option');
+      option.value = product.id || '';
+      option.textContent = (product.name || 'Unknown') + ' (' + (product.sku || 'N/A') + ')';
+      select.appendChild(option);
+    });
+  }
+
+  function renderSalesInvoiceTable(data) {
+    const tbody = document.getElementById('si-list-body');
+    const rowCount = document.getElementById('siRowCount');
+
+    if (!data || data.length === 0) {
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#95a5a6;">No sales invoices found.</td></tr>';
+      }
+      if (rowCount) rowCount.innerText = '0';
+      return;
+    }
+
+    if (rowCount) rowCount.innerText = data.length;
+    if (tbody) tbody.innerHTML = '';
+
+    data.forEach(si => {
+      const status = si.status || 'Pending';
+      const statusClass = status.toLowerCase() === 'approved' ? 'status-approved' : 
+                         status.toLowerCase() === 'rejected' ? 'status-rejected' : 'status-pending';
+
+      const customerName = customers.find(c => c.id === si.customerId)?.name || (si.customerId || 'N/A');
+
+      const row = `
+        <tr>
+          <td>${si.invoiceNumber || 'N/A'}</td>
+          <td>${customerName}</td>
+          <td>${si.invoiceDate || 'N/A'}</td>
+          <td>${si.expectedFinalDeliveryDate || 'N/A'}</td>
+          <td>${si.currency || 'BDT'} ${si.totalForeign || '0'}</td>
+          <td>
+            <select onchange="updateSIStatus('${si.id}', this.value)" style="padding: 4px; border-radius: 4px; border: none; cursor: pointer;">
+              <option value="Pending" ${status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="Approved" ${status === 'Approved' ? 'selected' : ''}>Approved</option>
+              <option value="Rejected" ${status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+            </select>
+          </td>
+          <td style="text-align: center;">
+            <div class="action-buttons">
+              <button class="btn-action btn-view" onclick="viewSalesInvoice('${si.id}')" title="View Details">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn-action btn-edit" onclick="editSalesInvoice('${si.id}')" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn-action" style="color: #27ae60;" onclick="printSalesInvoice('${si.id}')" title="Print">
+                <i class="fas fa-print"></i>
+              </button>
+              <button class="btn-action btn-delete" onclick="deleteSalesInvoice('${si.id}')" title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      if (tbody) tbody.insertAdjacentHTML('beforeend', row);
+    });
+  }
+
+  function openAddSalesInvoiceModal() {
+    currentSILineItems = [];
+    document.getElementById('siModalTitle').innerText = "Create New Sales Invoice";
+    document.getElementById('siForm').reset();
+    document.getElementById('siId').value = "";
+    document.getElementById('siLineItemsContainer').innerHTML = '';
+    updateSISummary();
+    document.getElementById('siModal').style.display = "flex";
+  }
+
+  function viewSalesInvoice(siId) {
+    const si = allSalesInvoices.find(s => s.id === siId);
+    if (!si) {
+      showNotification('Sales Invoice not found', 'error');
+      return;
+    }
+    console.log("Viewing SI:", si);
+    google.script.run
+      .withSuccessHandler(function(lines) {
+        console.log("SI lines received:", lines);
+        currentSILineItems = lines || [];
+        loadSIForEditing(si, true);
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading SI details:", err);
+        showNotification('Error loading SI details: ' + err, 'error');
+      })
+      .getSalesInvoiceLinesBySI(siId);
+  }
+
+  function editSalesInvoice(siId) {
+    const si = allSalesInvoices.find(s => s.id === siId);
+    if (!si) {
+      showNotification('Sales Invoice not found', 'error');
+      return;
+    }
+    console.log("Editing SI:", si);
+    google.script.run
+      .withSuccessHandler(function(lines) {
+        console.log("SI lines received:", lines);
+        currentSILineItems = lines || [];
+        loadSIForEditing(si, false);
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading SI details:", err);
+        showNotification('Error loading SI details: ' + err, 'error');
+      })
+      .getSalesInvoiceLinesBySI(siId);
+  }
+
+  function loadSIForEditing(si, viewOnly) {
+    document.getElementById('siModalTitle').innerText = viewOnly ? "View Sales Invoice" : "Edit Sales Invoice";
+    document.getElementById('siId').value = si.id;
+    document.getElementById('siCustomerId').value = si.customerId || '';
+    document.getElementById('siPoId').value = si.purchaseOrderId || '';
+    document.getElementById('siInvoiceDate').value = si.invoiceDate || '';
+    document.getElementById('siExpectedFinalDeliveryDate').value = si.expectedFinalDeliveryDate || '';
+    document.getElementById('siCurrency').value = si.currency || 'BDT';
+    document.getElementById('siStatus').value = si.status || 'Pending';
+    
+    // Populate line items
+    const container = document.getElementById('siLineItemsContainer');
+    container.innerHTML = '';
+    currentSILineItems.forEach(line => {
+      const product = products.find(p => p.id === line.productId);
+      addSILineItemDisplay(line, product);
+    });
+
+    updateSISummary();
+
+    if (viewOnly) {
+      document.querySelectorAll('#siForm input, #siForm select, #siForm textarea').forEach(el => el.disabled = true);
+      document.getElementById('siAddLineItemBtn').style.display = 'none';
+      document.getElementById('siSaveBtn').style.display = 'none';
+      document.getElementById('siCancelBtn').textContent = 'Close';
+    } else {
+      document.querySelectorAll('#siForm input, #siForm select, #siForm textarea').forEach(el => el.disabled = false);
+      document.getElementById('siAddLineItemBtn').style.display = 'inline-block';
+      document.getElementById('siSaveBtn').style.display = 'inline-block';
+      document.getElementById('siCancelBtn').textContent = 'Cancel';
+    }
+
+    document.getElementById('siModal').style.display = "flex";
+  }
+
+  function addSILineItem() {
+    const productId = document.getElementById('siProductSelect').value;
+    const productQty = document.getElementById('siProductQty').value;
+    const taxPercent = document.getElementById('siTaxPercent').value || 0;
+    const expectedDelivery = document.getElementById('siExpectedDeliveryDate').value;
+
+    if (!productId) {
+      showNotification('Please select a product', 'warning');
+      return;
+    }
+    if (!productQty || productQty <= 0) {
+      showNotification('Please enter quantity', 'warning');
+      return;
+    }
+
+    const product = products.find(p => p.id === productId);
+    if (!product) {
+      showNotification('Product not found', 'error');
+      return;
+    }
+
+    const unitPrice = parseFloat(document.getElementById('siUnitPrice').value) || parseFloat(product.unitPrice) || 0;
+    const quantity = parseFloat(productQty);
+    const tax = parseFloat(taxPercent);
+    const subtotal = unitPrice * quantity;
+    const taxAmount = (subtotal * tax) / 100;
+    const total = subtotal + taxAmount;
+
+    const lineItem = {
+      id: 'line-' + Date.now(),
+      productId: productId,
+      itemDescription: product.name || '',
+      quantity: quantity,
+      currency: product.currency || 'BDT',
+      unitPrice: unitPrice,
+      taxPercent: tax,
+      total: total,
+      expectedDeliveryDate: expectedDelivery,
+      isNew: true
+    };
+
+    currentSILineItems.push(lineItem);
+    addSILineItemDisplay(lineItem, product);
+    
+    // Reset form
+    document.getElementById('siProductSelect').value = '';
+    document.getElementById('siProductQty').value = '';
+    document.getElementById('siUnitPrice').value = '';
+    document.getElementById('siTaxPercent').value = '0';
+    document.getElementById('siExpectedDeliveryDate').value = '';
+    
+    updateSISummary();
+    showNotification('Line item added', 'success');
+  }
+
+  function addSILineItemDisplay(lineItem, product) {
+    const container = document.getElementById('siLineItemsContainer');
+    const html = `
+      <div class="line-item" id="line-${lineItem.id}">
+        <div class="line-item-info">
+          <span><strong>${lineItem.itemDescription}</strong></span>
+          <span>${lineItem.quantity} x ${lineItem.currency} ${lineItem.unitPrice} (Tax: ${lineItem.taxPercent}%)</span>
+          <span>Expected: ${lineItem.expectedDeliveryDate || 'N/A'}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="line-item-amount">${lineItem.currency} ${lineItem.total.toFixed(2)}</span>
+          <button type="button" class="btn-action btn-delete" onclick="removeSILineItem('${lineItem.id}')" title="Delete">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+  }
+
+  function removeSILineItem(lineId) {
+    currentSILineItems = currentSILineItems.filter(item => item.id !== lineId);
+    const element = document.getElementById('line-' + lineId);
+    if (element) element.remove();
+    updateSISummary();
+  }
+
+  function updateSIProductPrice() {
+    const productId = document.getElementById('siProductSelect').value;
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      document.getElementById('siUnitPrice').value = product.unitPrice || '';
+      document.getElementById('siCurrency').value = product.currency || 'BDT';
+    }
+  }
+
+  function updateSISummary() {
+    let subtotal = 0;
+    let totalTax = 0;
+
+    currentSILineItems.forEach(item => {
+      const itemSub = item.unitPrice * item.quantity;
+      subtotal += itemSub;
+      totalTax += (itemSub * item.taxPercent) / 100;
+    });
+
+    const grandTotal = subtotal + totalTax;
+
+    const summary = document.getElementById('siSummary');
+    if (summary) {
+      summary.innerHTML = `
+        <div class="summary-box">
+          <div class="summary-row">
+            <span>Subtotal:</span>
+            <span>${document.getElementById('siCurrency').value || 'BDT'} ${subtotal.toFixed(2)}</span>
+          </div>
+          <div class="summary-row">
+            <span>Tax (Total):</span>
+            <span>${document.getElementById('siCurrency').value || 'BDT'} ${totalTax.toFixed(2)}</span>
+          </div>
+          <div class="summary-row total">
+            <span>Grand Total:</span>
+            <span>${document.getElementById('siCurrency').value || 'BDT'} ${grandTotal.toFixed(2)}</span>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  function closeSiModal() {
+    document.getElementById('siModal').style.display = "none";
+  }
+
+  document.addEventListener('submit', function(e) {
+    if (e.target.id === 'siForm') {
+      e.preventDefault();
+
+      if (currentSILineItems.length === 0) {
+        showNotification('Please add at least one line item', 'warning');
+        return;
+      }
+
+      const saveBtn = document.getElementById('siSaveBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerText = "Saving...";
+
+      let subtotal = 0;
+      let totalTax = 0;
+      currentSILineItems.forEach(item => {
+        const itemSub = item.unitPrice * item.quantity;
+        subtotal += itemSub;
+        totalTax += (itemSub * item.taxPercent) / 100;
+      });
+
+      const formData = {
+        id: document.getElementById('siId').value,
+        customerId: document.getElementById('siCustomerId').value,
+        purchaseOrderId: document.getElementById('siPoId').value,
+        invoiceDate: document.getElementById('siInvoiceDate').value,
+        expectedFinalDeliveryDate: document.getElementById('siExpectedFinalDeliveryDate').value,
+        currency: document.getElementById('siCurrency').value,
+        totalForeign: subtotal + totalTax,
+        status: document.getElementById('siStatus').value,
+        lineItems: currentSILineItems
+      };
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          showNotification('Sales Invoice saved successfully!', 'success');
+          closeSiModal();
+          fetchSalesInvoices();
+          saveBtn.disabled = false;
+          saveBtn.innerText = "Save Sales Invoice";
+        })
+        .withFailureHandler(function(err) {
+          showNotification('Error: ' + err, 'error');
+          saveBtn.disabled = false;
+          saveBtn.innerText = "Save Sales Invoice";
+        })
+        .saveSalesInvoice(formData);
+    }
+  });
+
+  function deleteSalesInvoice(siId) {
+    if (!confirm('Are you sure you want to delete this sales invoice?')) return;
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        showNotification('Sales Invoice deleted successfully!', 'success');
+        fetchSalesInvoices();
+      })
+      .withFailureHandler(function(err) {
+        showNotification('Error deleting SI: ' + err, 'error');
+      })
+      .deleteSalesInvoice(siId);
+  }
+
+  function updateSIStatus(siId, newStatus) {
+    const si = allSalesInvoices.find(s => s.id === siId);
+    if (!si) {
+      showNotification('Sales Invoice not found', 'error');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        showNotification('Sales Invoice status updated to: ' + newStatus, 'success');
+        si.status = newStatus;
+        fetchSalesInvoices();
+      })
+      .withFailureHandler(function(err) {
+        showNotification('Error updating status: ' + err, 'error');
+        fetchSalesInvoices();
+      })
+      .updateSalesInvoiceStatus(siId, newStatus);
+  }
+
+  function printSalesInvoice(siId) {
+    const si = allSalesInvoices.find(s => s.id === siId);
+    if (!si) {
+      showNotification('Sales Invoice not found', 'error');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(lines) {
+        const customer = customers.find(c => c.id === si.customerId) || {};
+        let html = `
+          <html>
+            <head>
+              <title>Sales Invoice - ${si.invoiceNumber}</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .header h2 { margin: 0; }
+                .si-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+                .info-box { border: 1px solid #ddd; padding: 10px; }
+                .info-box strong { display: block; color: #2c3e50; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                th { background: #f8f9fa; font-weight: bold; }
+                .total { text-align: right; font-weight: bold; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h2>Sales Invoice</h2>
+                <p>${si.invoiceNumber}</p>
+              </div>
+              <div class="si-info">
+                <div class="info-box">
+                  <strong>Invoice Date:</strong> ${si.invoiceDate}
+                </div>
+                <div class="info-box">
+                  <strong>Expected Delivery:</strong> ${si.expectedFinalDeliveryDate}
+                </div>
+                <div class="info-box">
+                  <strong>Customer:</strong> ${customer.name || 'N/A'}
+                </div>
+                <div class="info-box">
+                  <strong>Status:</strong> ${si.status}
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Item Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        (lines || []).forEach(line => {
+          html += `
+                  <tr>
+                    <td>${line.itemDescription}</td>
+                    <td>${line.quantity}</td>
+                    <td>${line.currency} ${line.unitPrice}</td>
+                    <td>${line.currency} ${line.total}</td>
+                  </tr>
+          `;
+        });
+        
+        html += `
+                </tbody>
+              </table>
+              <div class="total">Grand Total: ${si.currency} ${si.totalForeign}</div>
+              <script>window.print();<\/script>
+            </body>
+          </html>
+        `;
+        
+        const printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write(html);
+        printWindow.document.close();
+      })
+      .withFailureHandler(function(err) {
+        showNotification('Error generating print: ' + err, 'error');
+      })
+      .getSalesInvoiceLinesBySI(siId);
+  }
+
+  function filterSalesInvoiceTable() {
+    const searchTerm = document.getElementById('siSearch').value.toLowerCase();
+    const table = document.getElementById('siTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    Array.from(rows).forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+  }
+</script>

@@ -1,0 +1,565 @@
+<script>
+  let allPurchaseInvoices = [];
+  let currentPILineItems = [];
+  let suppliers = [];
+  let products = [];
+  let purchaseOrders = [];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("Purchase Invoice page ready");
+    fetchPurchaseInvoices();
+    loadSuppliers();
+    loadProducts();
+    loadPurchaseOrders();
+  });
+
+  setTimeout(function() {
+    if (typeof fetchPurchaseInvoices === 'function') {
+      fetchPurchaseInvoices();
+      loadSuppliers();
+      loadProducts();
+      loadPurchaseOrders();
+    }
+  }, 500);
+
+  function fetchPurchaseInvoices() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        allPurchaseInvoices = data;
+        renderPurchaseInvoiceTable(data);
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error fetching PIs:", err);
+        showNotification("Error loading purchase invoices: " + err, 'error');
+      })
+      .getPurchaseInvoiceData();
+  }
+
+  function loadSuppliers() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        suppliers = data || [];
+        populateSupplierDropdown();
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading suppliers:", err);
+        showNotification("Error loading suppliers: " + err, 'error');
+      })
+      .getSupplierData();
+  }
+
+  function loadProducts() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        products = data || [];
+        populateProductDropdown();
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading products:", err);
+      })
+      .getProductData();
+  }
+
+  function loadPurchaseOrders() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        purchaseOrders = data || [];
+        populatePODropdown();
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading POs:", err);
+      })
+      .getPurchaseOrderData();
+  }
+
+  function populateSupplierDropdown() {
+    const select = document.getElementById('piSupplierSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Select Supplier --</option>';
+    suppliers.forEach(supplier => {
+      const option = document.createElement('option');
+      option.value = supplier.id || '';
+      option.textContent = supplier.name || 'Unknown';
+      select.appendChild(option);
+    });
+  }
+
+  function populatePODropdown() {
+    const select = document.getElementById('piPoSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Select PO --</option>';
+    purchaseOrders.forEach(po => {
+      const option = document.createElement('option');
+      option.value = po.id || '';
+      option.textContent = (po.poNumber || 'N/A') + ' - ' + (suppliers.find(s => s.id === po.supplierId)?.name || 'Unknown');
+      select.appendChild(option);
+    });
+  }
+
+  function populateProductDropdown() {
+    const select = document.getElementById('piProductSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Select Product --</option>';
+    products.forEach(product => {
+      const option = document.createElement('option');
+      option.value = product.id || '';
+      option.textContent = (product.name || 'Unknown') + ' (' + (product.sku || 'N/A') + ')';
+      select.appendChild(option);
+    });
+  }
+
+  function renderPurchaseInvoiceTable(data) {
+    const tbody = document.getElementById('pi-list-body');
+    const rowCount = document.getElementById('piRowCount');
+
+    if (!data || data.length === 0) {
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#95a5a6;">No purchase invoices found.</td></tr>';
+      }
+      if (rowCount) rowCount.innerText = '0';
+      return;
+    }
+
+    if (rowCount) rowCount.innerText = data.length;
+    if (tbody) tbody.innerHTML = '';
+
+    data.forEach(pi => {
+      const status = pi.status || 'Pending';
+      const statusClass = status.toLowerCase() === 'approved' ? 'status-approved' : 
+                         status.toLowerCase() === 'rejected' ? 'status-rejected' : 'status-pending';
+
+      const supplierName = suppliers.find(s => s.id === pi.supplierId)?.name || (pi.supplierId || 'N/A');
+
+      const row = `
+        <tr>
+          <td>${pi.invoiceNumber || 'N/A'}</td>
+          <td>${supplierName}</td>
+          <td>${pi.invoiceDate || 'N/A'}</td>
+          <td>${pi.expectedFinalReceivingDate || 'N/A'}</td>
+          <td>${pi.currency || 'BDT'} ${pi.totalForeign || '0'}</td>
+          <td>
+            <select onchange="updatePIStatus('${pi.id}', this.value)" style="padding: 4px; border-radius: 4px; border: none; cursor: pointer;">
+              <option value="Pending" ${status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="Approved" ${status === 'Approved' ? 'selected' : ''}>Approved</option>
+              <option value="Rejected" ${status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+            </select>
+          </td>
+          <td style="text-align: center;">
+            <div class="action-buttons">
+              <button class="btn-action btn-view" onclick="viewPurchaseInvoice('${pi.id}')" title="View Details">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn-action btn-edit" onclick="editPurchaseInvoice('${pi.id}')" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn-action" style="color: #27ae60;" onclick="printPurchaseInvoice('${pi.id}')" title="Print">
+                <i class="fas fa-print"></i>
+              </button>
+              <button class="btn-action btn-delete" onclick="deletePurchaseInvoice('${pi.id}')" title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      if (tbody) tbody.insertAdjacentHTML('beforeend', row);
+    });
+  }
+
+  function openAddPurchaseInvoiceModal() {
+    currentPILineItems = [];
+    document.getElementById('piModalTitle').innerText = "Create New Purchase Invoice";
+    document.getElementById('piForm').reset();
+    document.getElementById('piId').value = "";
+    document.getElementById('piLineItemsContainer').innerHTML = '';
+    updatePISummary();
+    document.getElementById('piModal').style.display = "flex";
+  }
+
+  function viewPurchaseInvoice(piId) {
+    const pi = allPurchaseInvoices.find(p => p.id === piId);
+    if (!pi) {
+      showNotification('Purchase Invoice not found', 'error');
+      return;
+    }
+    console.log("Viewing PI:", pi);
+    google.script.run
+      .withSuccessHandler(function(lines) {
+        console.log("PI lines received:", lines);
+        currentPILineItems = lines || [];
+        loadPIForEditing(pi, true);
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading PI details:", err);
+        showNotification('Error loading PI details: ' + err, 'error');
+      })
+      .getPurchaseInvoiceLinesByPI(piId);
+  }
+
+  function editPurchaseInvoice(piId) {
+    const pi = allPurchaseInvoices.find(p => p.id === piId);
+    if (!pi) {
+      showNotification('Purchase Invoice not found', 'error');
+      return;
+    }
+    console.log("Editing PI:", pi);
+    google.script.run
+      .withSuccessHandler(function(lines) {
+        console.log("PI lines received:", lines);
+        currentPILineItems = lines || [];
+        loadPIForEditing(pi, false);
+      })
+      .withFailureHandler(function(err) {
+        console.error("Error loading PI details:", err);
+        showNotification('Error loading PI details: ' + err, 'error');
+      })
+      .getPurchaseInvoiceLinesByPI(piId);
+  }
+
+  function loadPIForEditing(pi, viewOnly) {
+    document.getElementById('piModalTitle').innerText = viewOnly ? "View Purchase Invoice" : "Edit Purchase Invoice";
+    document.getElementById('piId').value = pi.id;
+    document.getElementById('piSupplierId').value = pi.supplierId || '';
+    document.getElementById('piPoId').value = pi.purchaseOrderId || '';
+    document.getElementById('piInvoiceDate').value = pi.invoiceDate || '';
+    document.getElementById('piExpectedFinalReceivingDate').value = pi.expectedFinalReceivingDate || '';
+    document.getElementById('piCurrency').value = pi.currency || 'BDT';
+    document.getElementById('piStatus').value = pi.status || 'Pending';
+    
+    // Populate line items
+    const container = document.getElementById('piLineItemsContainer');
+    container.innerHTML = '';
+    currentPILineItems.forEach(line => {
+      const product = products.find(p => p.id === line.productId);
+      addPILineItemDisplay(line, product);
+    });
+
+    updatePISummary();
+
+    if (viewOnly) {
+      document.querySelectorAll('#piForm input, #piForm select, #piForm textarea').forEach(el => el.disabled = true);
+      document.getElementById('piAddLineItemBtn').style.display = 'none';
+      document.getElementById('piSaveBtn').style.display = 'none';
+      document.getElementById('piCancelBtn').textContent = 'Close';
+    } else {
+      document.querySelectorAll('#piForm input, #piForm select, #piForm textarea').forEach(el => el.disabled = false);
+      document.getElementById('piAddLineItemBtn').style.display = 'inline-block';
+      document.getElementById('piSaveBtn').style.display = 'inline-block';
+      document.getElementById('piCancelBtn').textContent = 'Cancel';
+    }
+
+    document.getElementById('piModal').style.display = "flex";
+  }
+
+  function addPILineItem() {
+    const productId = document.getElementById('piProductSelect').value;
+    const productQty = document.getElementById('piProductQty').value;
+    const taxPercent = document.getElementById('piTaxPercent').value || 0;
+    const expectedReceipt = document.getElementById('piExpectedReceiptDate').value;
+
+    if (!productId) {
+      showNotification('Please select a product', 'warning');
+      return;
+    }
+    if (!productQty || productQty <= 0) {
+      showNotification('Please enter quantity', 'warning');
+      return;
+    }
+
+    const product = products.find(p => p.id === productId);
+    if (!product) {
+      showNotification('Product not found', 'error');
+      return;
+    }
+
+    const unitPrice = parseFloat(document.getElementById('piUnitPrice').value) || parseFloat(product.unitPrice) || 0;
+    const quantity = parseFloat(productQty);
+    const tax = parseFloat(taxPercent);
+    const subtotal = unitPrice * quantity;
+    const taxAmount = (subtotal * tax) / 100;
+    const total = subtotal + taxAmount;
+
+    const lineItem = {
+      id: 'line-' + Date.now(),
+      productId: productId,
+      itemDescription: product.name || '',
+      quantity: quantity,
+      currency: product.currency || 'BDT',
+      unitPrice: unitPrice,
+      taxPercent: tax,
+      total: total,
+      expectedReceivingDate: expectedReceipt,
+      isNew: true
+    };
+
+    currentPILineItems.push(lineItem);
+    addPILineItemDisplay(lineItem, product);
+    
+    // Reset form
+    document.getElementById('piProductSelect').value = '';
+    document.getElementById('piProductQty').value = '';
+    document.getElementById('piUnitPrice').value = '';
+    document.getElementById('piTaxPercent').value = '0';
+    document.getElementById('piExpectedReceiptDate').value = '';
+    
+    updatePISummary();
+    showNotification('Line item added', 'success');
+  }
+
+  function addPILineItemDisplay(lineItem, product) {
+    const container = document.getElementById('piLineItemsContainer');
+    const html = `
+      <div class="line-item" id="line-${lineItem.id}">
+        <div class="line-item-info">
+          <span><strong>${lineItem.itemDescription}</strong></span>
+          <span>${lineItem.quantity} x ${lineItem.currency} ${lineItem.unitPrice} (Tax: ${lineItem.taxPercent}%)</span>
+          <span>Expected: ${lineItem.expectedReceivingDate || 'N/A'}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="line-item-amount">${lineItem.currency} ${lineItem.total.toFixed(2)}</span>
+          <button type="button" class="btn-action btn-delete" onclick="removePILineItem('${lineItem.id}')" title="Delete">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+  }
+
+  function removePILineItem(lineId) {
+    currentPILineItems = currentPILineItems.filter(item => item.id !== lineId);
+    const element = document.getElementById('line-' + lineId);
+    if (element) element.remove();
+    updatePISummary();
+  }
+
+  function updatePIProductPrice() {
+    const productId = document.getElementById('piProductSelect').value;
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      document.getElementById('piUnitPrice').value = product.unitPrice || '';
+      document.getElementById('piCurrency').value = product.currency || 'BDT';
+    }
+  }
+
+  function updatePISummary() {
+    let subtotal = 0;
+    let totalTax = 0;
+
+    currentPILineItems.forEach(item => {
+      const itemSub = item.unitPrice * item.quantity;
+      subtotal += itemSub;
+      totalTax += (itemSub * item.taxPercent) / 100;
+    });
+
+    const grandTotal = subtotal + totalTax;
+
+    const summary = document.getElementById('piSummary');
+    if (summary) {
+      summary.innerHTML = `
+        <div class="summary-box">
+          <div class="summary-row">
+            <span>Subtotal:</span>
+            <span>${document.getElementById('piCurrency').value || 'BDT'} ${subtotal.toFixed(2)}</span>
+          </div>
+          <div class="summary-row">
+            <span>Tax (Total):</span>
+            <span>${document.getElementById('piCurrency').value || 'BDT'} ${totalTax.toFixed(2)}</span>
+          </div>
+          <div class="summary-row total">
+            <span>Grand Total:</span>
+            <span>${document.getElementById('piCurrency').value || 'BDT'} ${grandTotal.toFixed(2)}</span>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  function closePiModal() {
+    document.getElementById('piModal').style.display = "none";
+  }
+
+  document.addEventListener('submit', function(e) {
+    if (e.target.id === 'piForm') {
+      e.preventDefault();
+
+      if (currentPILineItems.length === 0) {
+        showNotification('Please add at least one line item', 'warning');
+        return;
+      }
+
+      const saveBtn = document.getElementById('piSaveBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerText = "Saving...";
+
+      let subtotal = 0;
+      let totalTax = 0;
+      currentPILineItems.forEach(item => {
+        const itemSub = item.unitPrice * item.quantity;
+        subtotal += itemSub;
+        totalTax += (itemSub * item.taxPercent) / 100;
+      });
+
+      const formData = {
+        id: document.getElementById('piId').value,
+        supplierId: document.getElementById('piSupplierId').value,
+        purchaseOrderId: document.getElementById('piPoId').value,
+        invoiceDate: document.getElementById('piInvoiceDate').value,
+        expectedFinalReceivingDate: document.getElementById('piExpectedFinalReceivingDate').value,
+        currency: document.getElementById('piCurrency').value,
+        totalForeign: subtotal + totalTax,
+        status: document.getElementById('piStatus').value,
+        lineItems: currentPILineItems
+      };
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          showNotification('Purchase Invoice saved successfully!', 'success');
+          closePiModal();
+          fetchPurchaseInvoices();
+          saveBtn.disabled = false;
+          saveBtn.innerText = "Save Purchase Invoice";
+        })
+        .withFailureHandler(function(err) {
+          showNotification('Error: ' + err, 'error');
+          saveBtn.disabled = false;
+          saveBtn.innerText = "Save Purchase Invoice";
+        })
+        .savePurchaseInvoice(formData);
+    }
+  });
+
+  function deletePurchaseInvoice(piId) {
+    if (!confirm('Are you sure you want to delete this purchase invoice?')) return;
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        showNotification('Purchase Invoice deleted successfully!', 'success');
+        fetchPurchaseInvoices();
+      })
+      .withFailureHandler(function(err) {
+        showNotification('Error deleting PI: ' + err, 'error');
+      })
+      .deletePurchaseInvoice(piId);
+  }
+
+  function updatePIStatus(piId, newStatus) {
+    const pi = allPurchaseInvoices.find(p => p.id === piId);
+    if (!pi) {
+      showNotification('Purchase Invoice not found', 'error');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        showNotification('Purchase Invoice status updated to: ' + newStatus, 'success');
+        pi.status = newStatus;
+        fetchPurchaseInvoices();
+      })
+      .withFailureHandler(function(err) {
+        showNotification('Error updating status: ' + err, 'error');
+        fetchPurchaseInvoices();
+      })
+      .updatePurchaseInvoiceStatus(piId, newStatus);
+  }
+
+  function printPurchaseInvoice(piId) {
+    const pi = allPurchaseInvoices.find(p => p.id === piId);
+    if (!pi) {
+      showNotification('Purchase Invoice not found', 'error');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(lines) {
+        const supplier = suppliers.find(s => s.id === pi.supplierId) || {};
+        let html = `
+          <html>
+            <head>
+              <title>Purchase Invoice - ${pi.invoiceNumber}</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .header h2 { margin: 0; }
+                .pi-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+                .info-box { border: 1px solid #ddd; padding: 10px; }
+                .info-box strong { display: block; color: #2c3e50; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                th { background: #f8f9fa; font-weight: bold; }
+                .total { text-align: right; font-weight: bold; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h2>Purchase Invoice</h2>
+                <p>${pi.invoiceNumber}</p>
+              </div>
+              <div class="pi-info">
+                <div class="info-box">
+                  <strong>Invoice Date:</strong> ${pi.invoiceDate}
+                </div>
+                <div class="info-box">
+                  <strong>Expected Receipt:</strong> ${pi.expectedFinalReceivingDate}
+                </div>
+                <div class="info-box">
+                  <strong>Supplier:</strong> ${supplier.name || 'N/A'}
+                </div>
+                <div class="info-box">
+                  <strong>Status:</strong> ${pi.status}
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Item Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        (lines || []).forEach(line => {
+          html += `
+                  <tr>
+                    <td>${line.itemDescription}</td>
+                    <td>${line.quantity}</td>
+                    <td>${line.currency} ${line.unitPrice}</td>
+                    <td>${line.currency} ${line.total}</td>
+                  </tr>
+          `;
+        });
+        
+        html += `
+                </tbody>
+              </table>
+              <div class="total">Grand Total: ${pi.currency} ${pi.totalForeign}</div>
+              <script>window.print();<\/script>
+            </body>
+          </html>
+        `;
+        
+        const printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write(html);
+        printWindow.document.close();
+      })
+      .withFailureHandler(function(err) {
+        showNotification('Error generating print: ' + err, 'error');
+      })
+      .getPurchaseInvoiceLinesByPI(piId);
+  }
+
+  function filterPurchaseInvoiceTable() {
+    const searchTerm = document.getElementById('piSearch').value.toLowerCase();
+    const table = document.getElementById('piTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    Array.from(rows).forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+  }
+</script>

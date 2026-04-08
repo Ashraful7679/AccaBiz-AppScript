@@ -189,6 +189,14 @@
           setTimeout(() => notification.remove(), 300);
         }, duration);
       }
+
+      // Load Dashboard on initial load
+      window.addEventListener('DOMContentLoaded', function() {
+        const dashboardItem = document.querySelector('#menu li.active');
+        if (dashboardItem) {
+          loadPage('Dashboard', dashboardItem);
+        }
+      });
     </script>
   </body>
 </html>
