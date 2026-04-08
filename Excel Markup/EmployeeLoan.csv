@@ -1,2 +1,0 @@
-"id","employeeId","principalAmount","interestRate","interestAmount","totalAmount","installments","startDate","purpose","status","companyId","createdAt","updatedAt"
-"a3707a0a-c706-40aa-86ae-ad4e7d3842fe","4fcfd957-b607-4c0b-a173-952b0616e657","10000","2","166.6666666666667","10166.66666666667","10","2026-03-31 00:00:00","","ACTIVE","235280c2-f037-4249-8696-bc38738a190e","2026-03-31 21:16:36.32","2026-03-31 21:16:43.862"

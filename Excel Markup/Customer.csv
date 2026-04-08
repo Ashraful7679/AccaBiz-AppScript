@@ -1,4 +1,0 @@
-"id","code","name","companyId","email","phone","address","city","country","isActive","createdAt","updatedAt","balanceType","contactPerson","creditLimit","openingBalance","preferredCurrency","tinVat","paymentTerms"
-"2bbf7a48-49b9-4441-a502-c5ef932a6067","CUS-2026-0003","Brainy Flavors","235280c2-f037-4249-8696-bc38738a190e","","","","","","true","2026-04-02 08:10:05.167","2026-04-02 08:15:01.568","DR","","10000","5000","USD","","COD"
-"d17294d9-b680-46a2-9fda-d974351f43cd","CUS-2026-0001","xyz ltd","235280c2-f037-4249-8696-bc38738a190e","","01236589654","","","","true","2026-03-31 10:11:41.97","2026-03-31 10:11:41.97","DR","Basir","0","0","BDT","","COD"
-"efab1c54-16a2-447d-9571-cb1022180e1a","CUS-2026-0002","Diagnostic Centre","235280c2-f037-4249-8696-bc38738a190e","","","H: 80, R: 6, S: 9, Uttara","","","true","2026-04-02 04:07:25.384","2026-04-02 08:09:37.741","DR","","0","0","BDT","","COD"

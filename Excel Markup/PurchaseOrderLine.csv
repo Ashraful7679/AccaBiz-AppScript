@@ -1,6 +1,0 @@
-"id","purchaseOrderId","itemDescription","quantity","unitPrice","total","productId"
-"0780d71b-76cb-4d7e-8685-b485c86bfd60","dc383ea6-92dd-4e2b-99a6-cf1f49b7dae0","Steel","1000","0.08","80","295122b3-35d7-4ffe-b332-63e16fa18803"
-"33615275-3538-4ebf-948d-60c4e7814c40","dc383ea6-92dd-4e2b-99a6-cf1f49b7dae0","Pipe","5000","0.83","4150","8723d0ac-b2bf-4496-b1c5-de8f6c61a453"
-"3964a565-3364-403f-b544-d415c4a3bfec","ac32ee8b-833b-4ccd-9401-3d311a83a4ff","Pipe","100","102","10200","8723d0ac-b2bf-4496-b1c5-de8f6c61a453"
-"3e601570-fb16-448a-ba26-07ee4343187f","7a9e1f9a-008d-4f63-b41a-66229114fad6","Pipe","4","102","408","8723d0ac-b2bf-4496-b1c5-de8f6c61a453"
-"4c140777-8e92-4c96-9e32-afa939155436","b0c0675d-7ec7-4f73-a9f8-1fc4550b7139","Pipe","7","102","714","8723d0ac-b2bf-4496-b1c5-de8f6c61a453"
