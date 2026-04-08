@@ -1,0 +1,127 @@
+<div class="supplier-wrapper">
+  <div class="page-header">
+    <div class="title-section">
+      <h2><i class="fas fa-truck"></i> Supplier Management</h2>
+      <p class="subtitle">Manage your suppliers and vendors</p>
+    </div>
+    <button class="btn-add" onclick="openAddSupplierModal()">
+      <i class="fas fa-plus-circle"></i> Add Supplier
+    </button>
+  </div>
+
+  <div class="action-bar">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="supplierSearch" placeholder="Search by name or email..." onkeyup="filterSupplierTable()">
+    </div>
+    <div class="table-info">
+      <span id="rowCount">0</span> suppliers found
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table" id="supplierTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Contact Info</th>
+          <th>Address</th>
+          <th>Is Active</th>
+          <th>Contact Person</th>
+          <th>Opening Balance</th>
+          <th>Preferred Currency</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="supplier-list-body">
+        <tr>
+          <td colspan="8" style="text-align:center; padding:30px; color:#95a5a6;">
+            <i class="fas fa-spinner fa-spin"></i> Loading data...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="supplierModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add New Supplier</h3>
+      <span class="close" onclick="closeModal()">&times;</span>
+    </div>
+    <form id="supplierForm">
+      <input type="hidden" id="supplierId">
+      <div class="form-group">
+        <label>Name *</label>
+        <input type="text" id="name" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="phone">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Address</label>
+        <textarea id="address" rows="2"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>City</label>
+          <input type="text" id="city">
+        </div>
+        <div class="form-group">
+          <label>Country</label>
+          <input type="text" id="country">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contact Person</label>
+          <input type="text" id="contactPerson">
+        </div>
+        <div class="form-group">
+          <label>Opening Balance</label>
+          <input type="number" id="openingBalance" step="0.01">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Preferred Currency</label>
+          <select id="preferredCurrency">
+            <option value="BDT">BDT</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Is Active</label>
+          <select id="isActive">
+            <option value="TRUE">Active</option>
+            <option value="FALSE">Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>TIN/VAT</label>
+        <input type="text" id="tinVat">
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-save">Save Supplier</button>
+      </div>
+    </form>
+  </div>
+</div>

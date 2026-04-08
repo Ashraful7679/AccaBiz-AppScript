@@ -1,0 +1,6 @@
+"id","code","name","logoUrl","address","city","country","phone","email","website","baseCurrency","isActive","createdAt","updatedAt"
+"155ac9ff-7ebd-4e2c-9b7b-fbbc50eafd17","FM-BEB430C5","Fms Marine Service","","","","","","","","BDT","true","2026-04-04 12:11:07.075","2026-04-04 12:11:07.075"
+"235280c2-f037-4249-8696-bc38738a190e","AL-88AC13D0","ABC LTD","","H-10,R-3,S-13,UTTARA, DHAKA","DHAKA","Bangladesh","01975786940","ABC@gmail.com","abc.com","BDT","true","2026-03-31 09:42:11.814","2026-03-31 09:42:11.814"
+"4da93909-c2a6-43d8-9eed-8f9dffc01db2","DT-EB41D82A","Do Time","","","","","","","","BDT","true","2026-04-05 16:35:30.896","2026-04-05 16:36:13.623"
+"de376863-014a-469a-8207-38d057b7a39b","MC-001","New Company",,,,,,,,"BDT","true","2026-04-06 11:13:46.381","2026-04-06 11:13:46.381"
+"eb03c03a-6e30-4301-b2e3-31318442749f","BB-DE07C41D","Bit Byte Tech.","","","","","","","","BDT","true","2026-04-04 11:59:39.819","2026-04-04 12:12:57.966"

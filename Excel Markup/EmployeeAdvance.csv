@@ -1,0 +1,4 @@
+"id","employeeId","amount","purpose","date","status","paymentMethod","accountId","journalEntryId","companyId","createdAt","updatedAt"
+"8406f306-f627-4904-b65b-795f791c64f4","def11442-ab61-47ee-8c7a-1a89e0dafa31","50000","Advance Salary Taken","2026-04-03 00:00:00","APPROVED","CASH",,"55985b28-9753-4b73-b96b-8f761888b878","235280c2-f037-4249-8696-bc38738a190e","2026-04-03 01:31:03.205","2026-04-06 10:54:29.595"
+"b0cfdf3d-4e58-46be-aa48-ac703edde356","4fcfd957-b607-4c0b-a173-952b0616e657","500","","2026-03-31 00:00:00","APPROVED","CASH",,"fbb24225-b897-4eb4-b180-1b3198aceee6","235280c2-f037-4249-8696-bc38738a190e","2026-03-31 21:40:10.474","2026-03-31 21:40:14.14"
+"d2a04de4-4aed-4f2c-930c-fde1e2e73afe","4fcfd957-b607-4c0b-a173-952b0616e657","10000","Adv Salary","2026-03-31 00:00:00","APPROVED","CASH",,"68c56705-54cb-40ed-8a21-4d624836a518","235280c2-f037-4249-8696-bc38738a190e","2026-03-31 21:15:47.707","2026-03-31 21:15:52.411"

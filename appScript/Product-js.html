@@ -1,0 +1,219 @@
+<script>
+// সরাসরি ফাংশন কল করার পরিবর্তে DOMContentLoaded ব্যবহার করুন
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("Product page ready, fetching data...");
+    fetchProducts();
+  });
+
+  // যদি উপরেরটি কাজ না করে, তবে loadPage হওয়ার সাথে সাথে এটি কল করার জন্য:
+  setTimeout(fetchProducts, 500); 
+
+  function fetchProducts() {
+    console.log("Calling Google Script...");
+    google.script.run
+      .withSuccessHandler(renderProductTable)
+      .withFailureHandler(function(err) {
+         console.error("Script Run Error:", err);
+         document.getElementById('product-list-body').innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error: ${err}</td></tr>`;
+      })
+      .getProductData();
+  }
+
+  function renderProductTable(data) {
+    const tbody = document.getElementById('product-list-body');
+    const rowCount = document.getElementById('rowCount');
+    
+    // ১. ডাটা না থাকলে ইউজারকে মেসেজ দেখানো
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:#95a5a6;">কোনো প্রোডাক্ট পাওয়া যায়নি।</td></tr>';
+      if(rowCount) rowCount.innerText = '০';
+      return;
+    }
+
+    // ২. প্রোডাক্ট সংখ্যা আপডেট করা
+    if(rowCount) rowCount.innerText = data.length;
+    
+    // ৩. টেবিল বডি ক্লিয়ার করা
+    tbody.innerHTML = '';
+
+    // ৪. লুপ চালিয়ে প্রতিটি প্রোডাক্টের জন্য রো (Row) তৈরি করা
+    data.forEach(item => {
+      
+      // স্ট্যাটাস লজিক (Active/Inactive)
+      const activeStatus = String(item.isActive).toUpperCase() === "TRUE";
+      const statusClass = activeStatus ? 'active-status' : 'inactive-status';
+      const statusText = activeStatus ? 'Active' : 'Inactive';
+      
+      // ডেসক্রিপশন হ্যান্ডেলিং (খালি থাকলে ছোট করে দেখানো)
+      const descriptionText = item.description 
+        ? `<div style="font-size:0.75rem; color:#7f8c8d; line-height: 1.2; margin-top:3px;">${item.description}</div>` 
+        : '';
+
+      // টাইপ ব্যাজ (Purchase/Sales) তৈরি করা
+      // ধরি ডাটা "purchase, sales" বা শুধু "sales" আকারে আছে
+      const types = item.type ? item.type.split(', ') : [];
+      const typeBadges = types.map(t => {
+        const bgColor = t.toLowerCase() === 'purchase' ? '#e1f5fe' : '#fff3e0';
+        const textColor = t.toLowerCase() === 'purchase' ? '#0288d1' : '#ef6c00';
+        return `<span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: ${bgColor}; color: ${textColor}; margin-right: 4px; font-weight: 600; text-transform: uppercase;">${t}</span>`;
+      }).join('');
+
+      // স্টক অ্যামাউন্ট কালার লজিক
+      const stock = parseInt(item.stockAmount) || 0;
+      const stockStyle = stock <= 5 ? 'color: #e74c3c; font-weight: bold;' : 'color: #2ecc71; font-weight: bold;';
+
+      // ৫. টেবিল রো এইচটিএমএল (HTML)
+      const row = `
+        <tr>
+          <td>
+            <div style="font-weight:600; color: #2c3e50; font-size: 0.95rem;">${item.name || 'N/A'}</div>
+            ${descriptionText}
+          </td>
+          
+          <td>
+            <code style="background: #f1f2f6; padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #57606f;">
+              ${item.sku || 'N/A'}
+            </code>
+          </td>
+          
+          <td>${item.currency || 'BDT'} ${item.unitPrice || '0'}</td>
+          
+          <td>
+            <span style="${stockStyle}">
+              <i class="fas fa-cubes" style="font-size: 0.8rem; margin-right: 4px;"></i>${stock}
+            </span>
+          </td>
+
+          <td>${typeBadges || '<span style="color:#ccc; font-size:10px;">None</span>'}</td>
+
+          <td>
+            <span class="status-pill ${statusClass}">${statusText}</span>
+          </td>
+          
+          <td style="text-align:center;">
+            <button class="edit-icon" onclick="editProduct('${item.id}')" 
+                    style="border:none; background:none; cursor:pointer; padding: 5px;" title="এডিট">
+              <i class="fas fa-edit" style="font-size: 1.1rem; color: #3498db;"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+
+      // ৬. বডিতে রো যুক্ত করা
+      tbody.insertAdjacentHTML('beforeend', row);
+    });
+
+    console.log("Table successfully re-rendered with " + data.length + " products.");
+  }
+
+  function filterProductTable() {
+    let input = document.getElementById("productSearch").value.toUpperCase();
+    let rows = document.querySelector("#productTable tbody").rows;
+
+    for (let i = 0; i < rows.length; i++) {
+      let text = rows[i].textContent.toUpperCase();
+      rows[i].style.display = text.includes(input) ? "" : "none";
+    }
+  }
+
+  function openAddProductModal() {
+    // পরবর্তী ধাপে আমরা এখানে মোডাল ওপেন করব
+    alert("এড প্রোডাক্ট ফর্ম তৈরির কাজ শুরু হচ্ছে!");
+  }
+
+  // গ্লোবাল ডাটা স্টোর করার জন্য (এডিটের সময় ডাটা খুঁজে পেতে)
+let allProducts = [];
+
+function fetchProducts() {
+  google.script.run
+    .withSuccessHandler(function(data) {
+      allProducts = data; // ডাটা সেভ করে রাখা হচ্ছে
+      renderProductTable(data);
+    })
+    .getProductData();
+}
+
+function openAddProductModal() {
+  document.getElementById('modalTitle').innerText = "নতুন প্রোডাক্ট যোগ করুন";
+  document.getElementById('productForm').reset();
+  document.getElementById('productId').value = "";
+  document.getElementById('productModal').style.display = "flex";
+}
+
+function editProduct(id) {
+  const product = allProducts.find(p => p.id === id);
+  if (product) {
+    document.getElementById('modalTitle').innerText = "প্রোডাক্ট এডিট করুন";
+    document.getElementById('productId').value = product.id;
+    document.getElementById('name').value = product.name;
+    document.getElementById('description').value = product.description;
+    document.getElementById('unitPrice').value = product.unitPrice;
+    document.getElementById('currency').value = product.currency;
+    document.getElementById('stockAmount').value = product.stockAmount;
+    document.getElementById('isActive').value = String(product.isActive).toUpperCase();
+    
+    // টাইপ সিলেক্ট সেট করা
+    const typeStr = String(product.type || "").toLowerCase();
+    if (typeStr.includes('purchase') && typeStr.includes('sales')) {
+      document.getElementById('productType').value = 'both';
+    } else if (typeStr.includes('purchase')) {
+      document.getElementById('productType').value = 'purchase';
+    } else if (typeStr.includes('sales')) {
+      document.getElementById('productType').value = 'sales';
+    } else {
+      document.getElementById('productType').value = '';
+    }
+    
+    document.getElementById('productModal').style.display = "flex";
+  }
+}
+
+function closeModal() {
+  document.getElementById('productModal').style.display = "none";
+}
+
+// ফর্ম সাবমিট হ্যান্ডলার
+document.getElementById('productForm').onsubmit = function(e) {
+  e.preventDefault();
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.innerText = "সেভিং...";
+
+  // টাইপ ভ্যালু সিলেক্ট থেকে নেওয়া
+  const selectedType = document.getElementById('productType').value;
+  let typeValue = '';
+  if (selectedType === 'purchase') {
+    typeValue = 'purchase';
+  } else if (selectedType === 'sales') {
+    typeValue = 'sales';
+  } else if (selectedType === 'both') {
+    typeValue = 'purchase, sales';
+  }
+
+  const formData = {
+    id: document.getElementById('productId').value,
+    name: document.getElementById('name').value,
+    description: document.getElementById('description').value,
+    unitPrice: document.getElementById('unitPrice').value,
+    currency: document.getElementById('currency').value,
+    stockAmount: document.getElementById('stockAmount').value,
+    isActive: document.getElementById('isActive').value,
+    type: typeValue
+  };
+
+  google.script.run
+    .withSuccessHandler(function(response) {
+      showNotification('Product saved successfully!', 'success');
+      closeModal();
+      fetchProducts(); // টেবিল রিফ্রেশ
+      saveBtn.disabled = false;
+      saveBtn.innerText = "সেভ করুন";
+    })
+    .withFailureHandler(function(err) {
+      showNotification('Error: ' + err, 'error');
+      saveBtn.disabled = false;
+      saveBtn.innerText = "সেভ করুন";
+    })
+    .saveProduct(formData);
+};
+</script>

@@ -1,9 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ProductRepository } from '../../repositories/ProductRepository';
-import { ProductPriceRepository } from '../../repositories/ProductPriceRepository';
 import { NotificationController } from './notification.controller';
 import { SequenceService } from './sequence.service';
-import { ValidationError, NotFoundError } from '../../middleware/errorHandler';
+import { NotFoundError } from '../../middleware/errorHandler';
 
 export class ProductController {
   async getProducts(request: FastifyRequest, reply: FastifyReply) {
@@ -21,10 +20,10 @@ export class ProductController {
 
   async createProduct(request: FastifyRequest, reply: FastifyReply) {
     const { id: companyId } = request.params as { id: string };
-    const { name, sku, description, unitPrice, isActive } = request.body as any;
+    const { name, sku, description, unitPrice, isActive, isInventory, lowStockThreshold, openingStock } = request.body as any;
 
     const code = await SequenceService.generateDocumentNumber(companyId, 'product');
-    
+
     const product = await ProductRepository.create({
       code,
       name,
@@ -32,10 +31,13 @@ export class ProductController {
       sku: sku || code,
       description,
       unitPrice: Number(unitPrice || 0),
-      isActive: isActive !== undefined ? isActive : true
+      isActive: isActive !== undefined ? isActive : true,
+      isInventory: isInventory !== undefined ? isInventory : true,
+      lowStockThreshold: Number(lowStockThreshold || 0),
+      openingStock: Number(openingStock || 0),
+      quantityOnHand: Number(openingStock || 0)
     });
 
-    // Log Activity
     await NotificationController.logActivity({
       companyId,
       entityType: 'product',
@@ -58,10 +60,12 @@ export class ProductController {
 
     const product = await ProductRepository.update(productId, {
       ...data,
-      unitPrice: data.unitPrice !== undefined ? Number(data.unitPrice) : undefined
+      unitPrice: data.unitPrice !== undefined ? Number(data.unitPrice) : undefined,
+      lowStockThreshold: data.lowStockThreshold !== undefined ? Number(data.lowStockThreshold) : undefined,
+      openingStock: data.openingStock !== undefined ? Number(data.openingStock) : undefined,
+      isInventory: data.isInventory !== undefined ? data.isInventory : undefined
     });
 
-    // Log Activity
     await NotificationController.logActivity({
       companyId,
       entityType: 'product',
@@ -83,7 +87,6 @@ export class ProductController {
 
     await ProductRepository.delete(productId);
 
-    // Log Activity
     await NotificationController.logActivity({
       companyId,
       entityType: 'product',
@@ -94,48 +97,5 @@ export class ProductController {
     });
 
     return reply.send({ success: true, message: 'Product deleted' });
-  }
-
-  async assignEntityPrice(request: FastifyRequest, reply: FastifyReply) {
-    const { productId, entityId, type, price, currency } = request.body as any;
-    const { id: companyId } = request.params as { id: string };
-
-    if (!productId || !entityId || !type || price === undefined) {
-      throw new ValidationError('productId, entityId, type and price are required');
-    }
-
-    const assignment = await ProductPriceRepository.upsert(productId, entityId, type, Number(price), currency || 'BDT');
-
-    // Log Activity
-    await NotificationController.logActivity({
-      companyId,
-      entityType: 'product_price',
-      entityId: assignment.id,
-      action: 'ASSIGNED',
-      performedById: (request.user as any).id,
-      metadata: { productId, entityId, type, price }
-    });
-
-    return reply.send({ success: true, data: assignment });
-  }
-
-  async getEntityProducts(request: FastifyRequest, reply: FastifyReply) {
-    const { entityId, type } = request.query as { entityId: string, type: 'customer' | 'vendor' };
-    
-    if (!entityId || !type) {
-      throw new ValidationError('entityId and type query parameters are required');
-    }
-
-    const products = await ProductPriceRepository.findByEntity(entityId, type);
-    return reply.send({ success: true, data: products });
-  }
-
-  async removeEntityPrice(request: FastifyRequest, reply: FastifyReply) {
-    const { id } = request.params as { id: string };
-    const { companyId } = request.params as { companyId: string };
-
-    await ProductPriceRepository.delete(id);
-
-    return reply.send({ success: true, message: 'Price assignment removed' });
   }
 }

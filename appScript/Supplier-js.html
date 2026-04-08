@@ -1,0 +1,156 @@
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("Supplier page ready, fetching data...");
+    closeModal(); // Ensure modal is closed on page load
+    fetchSuppliers();
+  });
+
+  setTimeout(fetchSuppliers, 500);
+
+  function fetchSuppliers() {
+    console.log("Calling Google Script for suppliers...");
+    google.script.run
+      .withSuccessHandler(renderSupplierTable)
+      .withFailureHandler(function(err) {
+         console.error("Script Run Error:", err);
+         document.getElementById('supplier-list-body').innerHTML = `<tr><td colspan="8" style="color:red; text-align:center;">Error: ${err}</td></tr>`;
+      })
+      .getVendorData();
+  }
+
+  function combineAddress(address, city, country) {
+    const parts = [];
+    if (address) parts.push(address);
+    if (city) parts.push(city);
+    if (country) parts.push(country);
+    return parts.join(', ');
+  }
+
+  function renderSupplierTable(data) {
+    const tbody = document.getElementById('supplier-list-body');
+    const rowCount = document.getElementById('rowCount');
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#95a5a6;">No suppliers found.</td></tr>';
+      if(rowCount) rowCount.innerText = '0';
+      return;
+    }
+
+    if(rowCount) rowCount.innerText = data.length;
+    tbody.innerHTML = '';
+
+    data.forEach(item => {
+      const activeStatus = String(item.isActive).toUpperCase() === "TRUE";
+      const statusClass = activeStatus ? 'active-status' : 'inactive-status';
+      const statusText = activeStatus ? 'Active' : 'Inactive';
+
+      const row = `
+        <tr>
+          <td>${item.name || ''}</td>
+          <td>
+            <div>${item.phone || ''}</div>
+            <div>${item.email || ''}</div>
+          </td>
+          <td>${combineAddress(item.address, item.city, item.country)}</td>
+          <td><span class="status-pill ${statusClass}">${statusText}</span></td>
+          <td>${item.contactPerson || ''}</td>
+          <td>${item.openingBalance || '0'}</td>
+          <td>${item.preferredCurrency || 'BDT'}</td>
+          <td style="text-align:center;">
+            <button class="edit-icon" onclick="editSupplier('${item.id}')"
+                    style="border:none; background:none; cursor:pointer; padding: 5px;" title="Edit">
+              <i class="fas fa-edit" style="font-size: 1.1rem; color: #3498db;"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+      tbody.innerHTML += row;
+    });
+  }
+
+  function filterSupplierTable() {
+    const input = document.getElementById('supplierSearch');
+    const filter = input.value.toUpperCase();
+    const table = document.getElementById('supplierTable');
+    const tr = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < tr.length; i++) {
+      const td = tr[i].getElementsByTagName('td');
+      if (td.length > 0) {
+        const name = td[0].textContent || td[0].innerText;
+        const email = td[1].textContent || td[1].innerText;
+        if (name.toUpperCase().indexOf(filter) > -1 || email.toUpperCase().indexOf(filter) > -1) {
+          tr[i].style.display = '';
+        } else {
+          tr[i].style.display = 'none';
+        }
+      }
+    }
+  }
+
+  function openAddSupplierModal() {
+    document.getElementById('modalTitle').innerText = 'Add New Supplier';
+    document.getElementById('supplierForm').reset();
+    document.getElementById('supplierId').value = '';
+    document.getElementById('supplierModal').style.display = 'flex';
+  }
+
+  function editSupplier(id) {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        const supplier = data.find(item => item.id === id);
+        if (supplier) {
+          document.getElementById('modalTitle').innerText = 'Edit Supplier';
+          document.getElementById('supplierId').value = supplier.id;
+          document.getElementById('name').value = supplier.name || '';
+          document.getElementById('email').value = supplier.email || '';
+          document.getElementById('phone').value = supplier.phone || '';
+          document.getElementById('address').value = supplier.address || '';
+          document.getElementById('city').value = supplier.city || '';
+          document.getElementById('country').value = supplier.country || '';
+          document.getElementById('contactPerson').value = supplier.contactPerson || '';
+          document.getElementById('openingBalance').value = supplier.openingBalance || '';
+          document.getElementById('preferredCurrency').value = supplier.preferredCurrency || 'BDT';
+          document.getElementById('isActive').value = supplier.isActive || 'TRUE';
+          document.getElementById('tinVat').value = supplier.tinVat || '';
+
+          document.getElementById('supplierModal').style.display = 'flex';
+        }
+      })
+      .getVendorData();
+  }
+
+  function closeModal() {
+    document.getElementById('supplierModal').style.display = 'none';
+  }
+
+  document.getElementById('supplierForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = {
+      id: document.getElementById('supplierId').value,
+      name: document.getElementById('name').value,
+      email: document.getElementById('email').value,
+      phone: document.getElementById('phone').value,
+      address: document.getElementById('address').value,
+      city: document.getElementById('city').value,
+      country: document.getElementById('country').value,
+      contactPerson: document.getElementById('contactPerson').value,
+      openingBalance: document.getElementById('openingBalance').value,
+      preferredCurrency: document.getElementById('preferredCurrency').value,
+      isActive: document.getElementById('isActive').value,
+      tinVat: document.getElementById('tinVat').value
+    };
+
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        showNotification(msg, 'success');
+        closeModal();
+        fetchSuppliers();
+      })
+      .withFailureHandler(function(err) {
+        showNotification('Error: ' + err, 'error');
+      })
+      .saveVendor(formData);
+  });
+</script>

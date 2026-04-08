@@ -18,6 +18,10 @@ interface Product {
   description: string | null;
   unitPrice: number;
   isActive: boolean;
+  quantityOnHand: number;
+  isInventory: boolean;
+  lowStockThreshold: number;
+  openingStock: number;
 }
 
 export default function EditProductPage() {
@@ -35,7 +39,10 @@ export default function EditProductPage() {
     currency: 'BDT',
     exchangeRate: 1,
     priceBDT: 0,
-    isActive: true
+    isActive: true,
+    isInventory: true,
+    lowStockThreshold: 5,
+    openingStock: 0
   });
 
   useEffect(() => {
@@ -63,7 +70,10 @@ export default function EditProductPage() {
         currency: (product as any).currency || 'BDT',
         exchangeRate: (product as any).exchangeRate || 1,
         priceBDT: (product as any).priceBDT || (product.unitPrice * ((product as any).exchangeRate || 1)),
-        isActive: product.isActive
+        isActive: product.isActive,
+        isInventory: product.isInventory,
+        lowStockThreshold: product.lowStockThreshold,
+        openingStock: product.openingStock
       });
     }
   }, [product]);
@@ -293,6 +303,69 @@ export default function EditProductPage() {
                         className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-black text-slate-900 text-lg outline-none cursor-default"
                       />
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Inventory Settings */}
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-bold text-slate-900">Inventory & Stocks</h3>
+                </div>
+                
+                <div 
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl cursor-pointer transition-all ${
+                    formData.isInventory ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-100' : 'bg-slate-50 text-slate-400'
+                  }`}
+                  onClick={() => setFormData({...formData, isInventory: !formData.isInventory})}
+                >
+                  <div className={`w-8 h-4 rounded-full relative transition-colors ${formData.isInventory ? 'bg-amber-500' : 'bg-slate-200'}`}>
+                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${formData.isInventory ? 'right-0.5' : 'left-0.5'}`} />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Track Inventory</span>
+                </div>
+              </div>
+              
+              <div className={`p-6 transition-all ${!formData.isInventory ? 'opacity-40 grayscale pointer-events-none select-none' : ''}`}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-sm font-bold text-slate-700 mb-1.5">Stock on Hand (Read Only)</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Qty</span>
+                      <input
+                        type="number"
+                        readOnly
+                        value={product?.quantityOnHand || 0}
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-black text-slate-900 text-lg outline-none cursor-default"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-slate-700 mb-1.5 text-red-500">Low Stock Alert at</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Qty</span>
+                      <input
+                        type="number"
+                        value={formData.lowStockThreshold || ''}
+                        onChange={(e) => setFormData({...formData, lowStockThreshold: parseFloat(e.target.value) || 0})}
+                        placeholder="5"
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all font-bold text-red-600"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-slate-700 mb-1.5">Manual Opening Stock (Original)</label>
+                    <input
+                      type="number"
+                      value={formData.openingStock || ''}
+                      onChange={(e) => setFormData({...formData, openingStock: parseFloat(e.target.value) || 0})}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all font-bold text-slate-700"
+                    />
                   </div>
                 </div>
               </div>

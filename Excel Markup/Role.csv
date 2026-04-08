@@ -1,0 +1,7 @@
+"id","name","description","isSystem","isActive","createdAt","updatedAt"
+"3ad303cd-aa9d-4789-bd91-53626d7dc6fc","Manager","Manager - can verify","true","true","2026-03-30 21:07:04.252","2026-03-30 21:07:04.252"
+"4de0e702-9682-4e26-8637-d070f7707ddd","Owner","Company Owner","true","true","2026-03-30 21:07:04.191","2026-03-30 21:07:04.191"
+"5051e901-0fcc-4435-bf25-cc73602aed3f","Accountant","Accountant - can create entries","true","true","2026-03-30 21:07:04.257","2026-03-30 21:07:04.257"
+"b399c2a8-be79-4c95-bd62-0edacfa08dce","Admin","System Administrator","true","true","2026-03-30 21:07:04.17","2026-03-30 21:07:04.17"
+"c0d9b0c1-25eb-4fd2-8856-d98d94da2c6f","DataEntryOperator","DataEntryOperator role for ABC LTD","false","true","2026-03-31 09:42:11.92","2026-03-31 09:42:11.92"
+"f855ad23-152c-4da8-9709-026685ef8137","User","Basic user","true","true","2026-03-30 21:07:04.263","2026-03-30 21:07:04.263"

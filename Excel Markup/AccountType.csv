@@ -1,0 +1,6 @@
+"id","name","type","isActive"
+"5e63f095-80b2-4769-8e59-f33df2375e0b","ASSET","DEBIT","true"
+"a6aa85f0-6cd0-457e-915e-eccd8e49f425","INCOME","CREDIT","true"
+"ef95542f-486b-45f4-ad39-ebcd14a483a2","EXPENSE","DEBIT","true"
+"f55ad986-5fe9-43a3-9b77-3f0ebd3cd8b6","LIABILITY","CREDIT","true"
+"f81c1442-6b86-4657-a075-28df533a5223","EQUITY","CREDIT","true"

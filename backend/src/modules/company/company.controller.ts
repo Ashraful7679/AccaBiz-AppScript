@@ -6,6 +6,7 @@ import { TransactionRepository } from '../../repositories/TransactionRepository'
 import { CustomerRepository } from '../../repositories/CustomerRepository';
 import { VendorRepository } from '../../repositories/VendorRepository';
 import { PurchaseOrderRepository } from '../../repositories/PurchaseOrderRepository';
+import { ProductRepository } from '../../repositories/ProductRepository';
 import { SYSTEM_MODE } from '../../lib/systemMode';
 import { demoCompany } from '../../lib/mockData/company';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../middleware/errorHandler';
@@ -924,8 +925,18 @@ export class CompanyController {
           },
         });
 
-        // 2. Generate Multi-Line Journal Entry
-        console.log(`[ApproveInvoice] Checkpoint 2: Generating ledger entry...`);
+        // 2. Update Stock Levels
+        console.log(`[ApproveInvoice] Checkpoint 2: Updating product stock...`);
+        for (const line of invoice.lines) {
+          if (line.productId) {
+            // quantityChange: positive for PURCHASE, negative for SALES
+            const quantityChange = invoice.type === 'PURCHASE' ? Number(line.quantity) : -Number(line.quantity);
+            await ProductRepository.updateStock(tx, line.productId, quantityChange);
+          }
+        }
+
+        // 3. Generate Multi-Line Journal Entry
+        console.log(`[ApproveInvoice] Checkpoint 3: Generating ledger entry...`);
         await TransactionRepository.generateInvoiceJournal(tx, invoice, companyId, userId);
 
         return inv;

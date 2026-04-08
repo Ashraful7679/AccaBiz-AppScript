@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+      
+      /* Sidebar Styling */
+      #sidebar { width: 250px; background: #2c3e50; color: white; display: flex; flex-direction: column; transition: all 0.3s; flex-shrink: 0; }
+      #sidebar .logo { padding: 20px; font-size: 1.5rem; text-align: center; background: #1a252f; font-weight: bold; }
+      #sidebar ul { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+      #sidebar ul li { padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #34495e; transition: 0.2s; }
+      #sidebar ul li:hover { background: #34495e; padding-left: 30px; }
+      #sidebar ul li i { margin-right: 10px; width: 20px; }
+      
+      /* Submenu Styling */
+      .submenu { display: none; background: #1a252f; padding-left: 20px; list-style: none; }
+      .submenu li { font-size: 0.9rem; padding: 10px !important; }
+      .has-sub i.arrow { float: right; transition: 0.3s; }
+      .open i.arrow { transform: rotate(180deg); }
+
+      /* Main Content Area */
+      #main-container { flex-grow: 1; display: flex; flex-direction: column; background: #f4f7f6; width: 100%; }
+      header { height: 60px; background: white; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); justify-content: space-between; flex-shrink: 0; }
+      
+      /* Content Body */
+      #content { padding: 20px; flex-grow: 1; overflow-y: auto; }
+      
+      .active { background: #3498db !important; border-left: 5px solid #fff; }
+
+      /* Notification Styles */
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      }
+      .notification.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      .notification.success { background: #27ae60; }
+      .notification.error { background: #e74c3c; }
+      .notification.info { background: #3498db; }
+      .notification.warning { background: #f39c12; }
+    </style>
+  </head>
+  <body>
+
+    <nav id="sidebar">
+      <div class="logo">ERP System</div>
+      <ul id="menu">
+        <li onclick="loadPage('Dashboard', this)" class="active"><i class="fas fa-chart-line"></i> Dashboard</li>
+        <li onclick="loadPage('Product', this)"><i class="fas fa-box"></i> Product</li>
+        
+        <li class="has-sub" onclick="toggleSub(this)">
+          <i class="fas fa-shopping-cart"></i> Purchase <i class="fas fa-chevron-down arrow"></i>
+        </li>
+        <ul class="submenu">
+          <li onclick="loadPage('Supplier', this)">Supplier</li>
+          <li onclick="loadPage('PurchaseOrder', this)">Purchase Order</li>
+          <li onclick="loadPage('PurchaseInvoice', this)">Purchase Invoice</li>
+          <li onclick="loadPage('ImportPI', this)">Import PI</li>
+        </ul>
+
+        <li class="has-sub" onclick="toggleSub(this)">
+          <i class="fas fa-cash-register"></i> Sales <i class="fas fa-chevron-down arrow"></i>
+        </li>
+        <ul class="submenu">
+          <li onclick="loadPage('Customer', this)">Customer</li>
+          <li onclick="loadPage('ProformaInvoice', this)">Proforma Invoice</li>
+          <li onclick="loadPage('SalesInvoice', this)">Sales Invoice</li>
+        </ul>
+
+        <li onclick="loadPage('Payment', this)"><i class="fas fa-money-bill-wave"></i> Payment</li>
+        <li onclick="loadPage('LCManagement', this)"><i class="fas fa-ship"></i> LC Management</li>
+        <li onclick="loadPage('ChartOfAccount', this)"><i class="fas fa-list-ul"></i> Chart of Account</li>
+        <li onclick="loadPage('JournalEntry', this)"><i class="fas fa-book"></i> Journal Entry</li>
+        <li onclick="loadPage('Employee', this)"><i class="fas fa-users"></i> Employee</li>
+        <li onclick="loadPage('BankReconciliation', this)"><i class="fas fa-university"></i> Bank Reconciliation</li>
+        <li onclick="loadPage('Reports', this)"><i class="fas fa-file-invoice"></i> Reports</li>
+        <li onclick="loadPage('Backup', this)"><i class="fas fa-database"></i> Backup</li>
+      </ul>
+    </nav>
+
+    <div id="main-container">
+      <header>
+        <h3 id="page-title">Dashboard</h3>
+        <div><i class="fas fa-user-circle"></i> Admin</div>
+      </header>
+      
+      <div id="content">
+        <div id="loading" style="display:none; text-align:center; padding:50px;">
+          <i class="fas fa-spinner fa-spin fa-3x"></i><p>লোড হচ্ছে...</p>
+        </div>
+        <div id="dynamic-body">
+           <h2>স্বাগতম!</h2>
+           <p>সিস্টেম শুরু করতে বাম পাশের মেনু ব্যবহার করুন।</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // সাবমেনু টগল ফাংশন
+      function closeAllSubmenus() {
+        document.querySelectorAll('#sidebar .submenu').forEach(sub => sub.style.display = 'none');
+        document.querySelectorAll('#sidebar .has-sub').forEach(li => li.classList.remove('open'));
+      }
+
+      function toggleSub(el) {
+        const nextSub = el.nextElementSibling;
+        if (!nextSub || !nextSub.classList.contains('submenu')) return;
+
+        const willOpen = !el.classList.contains('open');
+        closeAllSubmenus();
+
+        if (willOpen) {
+          el.classList.add('open');
+          nextSub.style.display = 'block';
+        }
+      }
+
+      // পেজ লোড ফাংশন
+      function loadPage(pageName, element) {
+        // ১. একটিভ ক্লাস এবং টাইটেল আপডেট
+        let list = document.querySelectorAll('#menu li');
+        list.forEach(li => li.classList.remove('active'));
+        if(element) element.classList.add('active');
+        document.getElementById('page-title').innerText = pageName;
+        
+        // ২. লোডার দেখানো
+        const dynamicBody = document.getElementById('dynamic-body');
+        dynamicBody.innerHTML = '<div style="text-align:center; padding:50px;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>লোড হচ্ছে...</p></div>';
+
+        // ৩. সার্ভার থেকে কন্টেন্ট আনা
+        google.script.run
+          .withSuccessHandler(function(htmlContent) {
+            // কন্টেন্ট ইনজেক্ট করা
+            dynamicBody.innerHTML = htmlContent;
+
+            // ৪. স্ক্রিপ্ট ট্যাগগুলোকে জোরপূর্বক রান করানো (খুবই গুরুত্বপূর্ণ)
+            const scripts = dynamicBody.getElementsByTagName('script');
+            for (let i = 0; i < scripts.length; i++) {
+              const scriptTag = document.createElement('script');
+              scriptTag.text = scripts[i].text;
+              document.head.appendChild(scriptTag).parentNode.removeChild(scriptTag);
+            }
+            
+            // ৫. কন্টেন্ট লোড হওয়ার পর ডাটা ফেচিং ফাংশন কল করা (ব্যাকআপ হিসেবে)
+            if (typeof fetchProducts === "function") {
+              fetchProducts();
+            }
+          })
+          .withFailureHandler(function(err) {
+            dynamicBody.innerHTML = "Error: " + err;
+          })
+          .getPageContent(pageName);
+      }
+
+      // Notification function
+      function showNotification(message, type = 'info', duration = 3000) {
+        // Remove existing notifications
+        const existing = document.querySelectorAll('.notification');
+        existing.forEach(n => n.remove());
+
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // Show notification
+        setTimeout(() => notification.classList.add('show'), 10);
+
+        // Hide and remove after duration
+        setTimeout(() => {
+          notification.classList.remove('show');
+          setTimeout(() => notification.remove(), 300);
+        }, duration);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,2 @@
+"id","employeeId","amount","description","category","date","status","paymentMethod","accountId","journalEntryId","companyId","createdAt","updatedAt"
+"b922a708-0258-4f61-ab05-eeda2668d45b","bd1e818f-47c4-4f0c-b0e2-1431307615f9","50000","","SALARY","2026-04-02 00:00:00","APPROVED","CASH",,"49a91aed-9d7e-4379-a714-3792cbd0c769","235280c2-f037-4249-8696-bc38738a190e","2026-04-02 08:46:01.45","2026-04-06 10:56:02.809"

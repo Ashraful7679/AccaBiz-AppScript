@@ -1,0 +1,128 @@
+<script>
+  const pageSheetMap = {
+    Dashboard: ['dashboard', 'summary'],
+    Product: ['product'],
+    Supplier: ['vendor', 'supplier'],
+    Customer: ['customer'],
+    PurchaseOrder: ['purchaseorder', 'purchase order', 'po'],
+    PurchaseInvoice: ['purchaseinvoice', 'purchase invoice'],
+    ImportPI: ['importpi', 'import pi'],
+    ProformaInvoice: ['proformainvoice', 'proforma invoice'],
+    SalesInvoice: ['salesinvoice', 'sales invoice'],
+    Payment: ['payments', 'payment', 'payment_receive', 'payment receive'],
+    LCManagement: ['lc', 'lcmanagement'],
+    ChartOfAccount: ['chartofaccount', 'chart of account'],
+    JournalEntry: ['journalentry', 'journal entry'],
+    Employee: ['employee', 'employees'],
+    BankReconciliation: ['bankreconciliation', 'bank reconciliation'],
+    Reports: ['reports', 'report'],
+    Backup: ['backup']
+  };
+
+  function normalizeText(value) {
+    return value ? value.toString().trim().toLowerCase() : '';
+  }
+
+  function findSheetForPage(pageName, sheetNames) {
+    const aliases = pageSheetMap[pageName] || [];
+    for (let alias of aliases) {
+      const normalizedAlias = normalizeText(alias);
+      const match = sheetNames.find(name => normalizeText(name) === normalizedAlias || normalizeText(name).includes(normalizedAlias));
+      if (match) return match;
+    }
+    return null;
+  }
+
+  function loadSheetForPage(pageName) {
+    const container = document.getElementById('page-data-container');
+    if (!container) return;
+    container.innerHTML = '<div class="placeholder-box">Loading sheet data...</div>';
+
+    google.script.run
+      .withSuccessHandler(function(sheetNames) {
+        const sheetName = findSheetForPage(pageName, sheetNames);
+        if (!sheetName) {
+          renderSheetPlaceholder(container, pageName, sheetNames);
+          return;
+        }
+
+        if (pageName === 'Dashboard') {
+          loadDashboardSummary(sheetNames);
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function(rows) {
+            if (!rows || rows.length === 0) {
+              container.innerHTML = '<div class="placeholder-box">No data found in sheet "' + sheetName + '".</div>';
+              return;
+            }
+            renderSheetTable(container, rows, sheetName);
+          })
+          .withFailureHandler(function(err) {
+            container.innerHTML = '<div class="placeholder-box">Unable to load sheet data: ' + err + '</div>';
+          })
+          .getSheetData(sheetName);
+      })
+      .withFailureHandler(function(err) {
+        container.innerHTML = '<div class="placeholder-box">Unable to load sheet list: ' + err + '</div>';
+      })
+      .getAllSheetNames();
+  }
+
+  function renderSheetPlaceholder(container, pageName, sheetNames) {
+    const list = sheetNames.length ? sheetNames.map(name => '<li>' + name + '</li>').join('') : '<li>No sheets found</li>';
+    container.innerHTML = `
+      <div class="page-content">
+        <div class="placeholder-box">
+          <div>
+            <strong>No linked sheet found for page "${pageName}".</strong>
+            <p>Available sheet names:</p>
+            <ul style="padding-left: 20px; margin: 10px 0;">${list}</ul>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderSheetTable(container, rows, sheetName) {
+    const headers = Object.keys(rows[0] || {});
+    const head = headers.map(h => '<th>' + h + '</th>').join('');
+    const body = rows.map(row => {
+      const cells = headers.map(header => '<td>' + (row[header] || '') + '</td>').join('');
+      return '<tr>' + cells + '</tr>';
+    }).join('');
+
+    container.innerHTML = `
+      <div class="page-content">
+        <h3 style="margin-top:0;">Sheet: ${sheetName}</h3>
+        <div class="table-responsive">
+          <table class="data-table"> 
+            <thead><tr>${head}</tr></thead>
+            <tbody>${body}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  function loadDashboardSummary(sheetNames) {
+    const container = document.getElementById('page-data-container');
+    if (!container) return;
+    const items = sheetNames.map(sheet => {
+      return google.script.run.withSuccessHandler(function(count) {
+        const element = document.getElementById('summary-' + sheet);
+        if (element) element.innerText = count;
+      }).getSheetRowCount(sheet);
+    });
+
+    const cards = sheetNames.map(sheet => `
+      <div class="info-card">
+        <h3>${sheet}</h3>
+        <p id="summary-${sheet}">Loading...</p>
+      </div>`).join('');
+
+    container.innerHTML = `
+      <div class="page-content">
+        <div class="card-grid">${cards}</div>
+      </div>`;
+  }
+</script>

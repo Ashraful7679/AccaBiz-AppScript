@@ -74,4 +74,31 @@ export class ProductRepository {
     }
     return { id };
   }
+
+  /**
+   * Updates product stock within a transaction.
+   * quantityChange: positive for increase (Purchase), negative for decrease (Sales).
+   */
+  static async updateStock(tx: any, productId: string, quantityChange: number) {
+    if (SYSTEM_MODE !== "LIVE") return;
+
+    const product = await tx.product.findUnique({
+      where: { id: productId },
+      select: { id: true, name: true, quantityOnHand: true, isInventory: true }
+    });
+
+    if (!product || !product.isInventory) return;
+
+    const newQuantity = Number(product.quantityOnHand) + quantityChange;
+
+    // Block negative stock if requested
+    if (newQuantity < 0) {
+      throw new Error(`Insufficient stock for product "${product.name}". Available: ${product.quantityOnHand}, Requested change: ${quantityChange}`);
+    }
+
+    return await tx.product.update({
+      where: { id: productId },
+      data: { quantityOnHand: newQuantity }
+    });
+  }
 }

@@ -22,6 +22,9 @@ interface Product {
   currency: string;
   exchangeRate: number;
   isActive: boolean;
+  quantityOnHand: number;
+  isInventory: boolean;
+  lowStockThreshold: number;
 }
 
 export default function ProductsPage() {
@@ -108,13 +111,13 @@ export default function ProductsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Product Info</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">SKU</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Unit Price</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Exchange Rate (BDT)</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Unit Price (BDT)</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Product Info</th>
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">SKU</th>
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Stock on Hand</th>
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Unit Price</th>
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Unit Price (BDT)</th>
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -164,21 +167,34 @@ export default function ProductsPage() {
                       <td className="px-6 py-4">
                         <span className="text-slate-600 font-medium">{product.sku || '---'}</span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-slate-900 font-black">
-                          {currencySymbol}{formatCurrency(product.unitPrice)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-slate-600 font-medium">
-                          {product.exchangeRate || 1}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-slate-900 font-black">
-                          ৳{formatCurrency(priceBDT)}
-                        </span>
-                      </td>
+                       <td className="px-6 py-4 text-right">
+                        {product.isInventory ? (
+                          <div className="flex flex-col items-end">
+                            <span className={`font-black text-lg ${
+                              product.quantityOnHand <= product.lowStockThreshold 
+                                ? 'text-red-600 animate-pulse' 
+                                : 'text-slate-900'
+                            }`}>
+                              {product.quantityOnHand}
+                            </span>
+                            {product.quantityOnHand <= product.lowStockThreshold && (
+                              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Low Stock</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic text-sm">Service</span>
+                        )}
+                       </td>
+                       <td className="px-6 py-4 text-right">
+                         <span className="text-slate-900 font-black">
+                           {currencySymbol}{formatCurrency(product.unitPrice)}
+                         </span>
+                       </td>
+                       <td className="px-6 py-4 text-right">
+                         <span className="text-slate-900 font-black">
+                           ৳{formatCurrency(priceBDT)}
+                         </span>
+                       </td>
                       <td className="px-6 py-4">
                         {product.isActive ? (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
