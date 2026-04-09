@@ -1,9 +1,0 @@
-"id","email","password","firstName","lastName","isActive","maxCompanies","managerId","createdAt","updatedAt","address","phone"
-"3de00e61-540e-46b8-afac-9c389a516e8f","dibya@dotime.com","$2a$10$K4mVVHJTuydW1Fo6IZPWyO8nqHOLKVN8RHiLCfMrQ67SeTBOdwR5W","Dibya","Chy","true","5",,"2026-04-05 16:36:03.948","2026-04-05 16:36:03.948",,
-"70482fa3-8c3e-4f89-9b9a-7820ac992d3a","abul@monsur.com","$2a$10$.p1Sz8dLiBKZbYJb7fMGeOkV4eTyNIC/wsAjXe1wZbt2hGWw//9he","Abul","Mnsur","true","5",,"2026-04-04 12:09:58.427","2026-04-04 12:09:58.427",,
-"87ccbe73-e7ed-4a75-8a0f-40422e2c194f","ash@gmail.com","$2a$10$2NEWxbad84KsJIfWj6ttV.VA3B7bDkEUIHwSfTZGE.0XxOoVpDGEi","Ashraful","Sulaiman","true","1",,"2026-04-01 23:42:28.014","2026-04-01 23:42:28.014",,
-"8cc692ca-b8f7-4083-b483-5d91052de874","omar@bb.com","$2a$10$fM9g8wyW6TaGVdJqqDKRauLNk62tKX8t4WIkI4B5o2Ynpb.xoNEFi","Omar","Faruk","true","5",,"2026-04-04 12:00:54.038","2026-04-04 12:00:54.038",,
-"9d3de344-0418-4acd-87dd-959f7a658c8b","rabbi@gmail.com","$2a$10$kG1YulhYM1AoxddHM4T3aufHsXjykHYybFLNbPNx4PZ9RBsin4pOO","Fazle","RABBI","true","1",,"2026-04-06 11:11:46.448","2026-04-06 11:11:46.448",,
-"e16db93a-9997-4fc7-8160-99235f20f991","admin@accounting.com","$2a$10$s/vKXO1hOqfFL2k0FZlHh.24KFrzOY1rNUKAsoiuy3AHt5amDm9te","Admin","User","true","100",,"2026-03-30 21:07:05.15","2026-03-30 21:07:05.15",,
-"e88ca230-8eba-4fcb-89ae-111af8ce4955","Nafis@abc.com","$2a$10$LubLCbTbxORekF2beqLRW.IuwqMLw/ngF3XkLRER66FORNA7Niqda","A","Nafis","true","1",,"2026-03-31 10:01:22.355","2026-03-31 10:01:22.355",,
-"f5792746-5425-4b3e-bcef-2df5ff24e4c7","fazle7229@gmail.com","$2a$10$3Gng/zNl8FleIQEf.U2DDO2mBVhQY.tNI5Cx6rgRSHFCfM2EkW6ci","ABDUR","RABBI","true","5",,"2026-03-31 09:40:54.364","2026-03-31 09:40:54.364",,
